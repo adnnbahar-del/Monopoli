@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="id" dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+
+    <!-- ── Viewport & Mobile ───────────────────────────────────── -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="MONOPECA" />
+
+    <!-- ── SEO & Deskripsi ─────────────────────────────────────── -->
+    <title>MONOPECA — Monopoli Pecahan</title>
+    <meta name="description" content="MONOPECA: Media game edukatif monopoli berbasis TGT untuk materi pecahan Kelas V SD Fase C (Kurikulum Merdeka). Cocok untuk siswa usia 10–11 tahun." />
+    <meta name="keywords" content="game edukatif, monopoli pecahan, matematika SD, TGT, kooperatif, kelas 5, kurikulum merdeka, pecahan" />
+    <meta name="author" content="MONOPECA — Media Edukatif Matematika" />
+    <meta name="robots" content="noindex, nofollow" />
+
+    <!-- ── Open Graph (Berbagi) ─────────────────────────────────── -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="MONOPECA — Monopoli Pecahan" />
+    <meta property="og:description" content="Game edukatif monopoli berbasis TGT untuk materi pecahan Kelas V SD Fase C (Kurikulum Merdeka)." />
+    <meta property="og:locale" content="id_ID" />
+
+    <!-- ── Theme & PWA ──────────────────────────────────────────── -->
+    <meta name="theme-color" content="#FF6B35" />
+    <meta name="background-color" content="#FFF8EC" />
+    <link rel="icon" type="image/svg+xml" href="/pwa-icon.svg" />
+    <link rel="apple-touch-icon" href="/pwa-192x192.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+
+    <!-- ── DNS Prefetch (Performa) ──────────────────────────────── -->
+    <link rel="dns-prefetch" href="//fonts.googleapis.com" />
+
+    <!-- ── Preload Font Kritis ──────────────────────────────────── -->
+    <style>
+      /* Mencegah Flash of Unstyled Text */
+      html { font-family: 'Nunito', sans-serif; }
+      body {
+        margin: 0;
+        background: linear-gradient(135deg, #FFE3B3, #FFB8A1);
+        min-height: 100vh;
+      }
+      /* Loading skeleton saat React belum mount */
+      #root:empty {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+      }
+      #root:empty::after {
+        content: 'MONOPECA';
+        font-size: 2rem;
+        font-weight: 900;
+        color: #FF6B35;
+        letter-spacing: 0.05em;
+        animation: pulse 1.5s ease-in-out infinite;
+      }
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.4; }
+      }
+    </style>
+  </head>
+  <body class="bg-gradient-to-br from-[#FFE3B3] to-[#FFB8A1] min-h-screen text-[#1E2149] font-sans antialiased selection:bg-[#FF6B35] selection:text-white overflow-x-hidden">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

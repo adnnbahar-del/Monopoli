@@ -1,0 +1,795 @@
+{
+  "versi": "1.0",
+  "materi": "Pecahan Kelas V (Fase C)",
+  "soal": [
+    {
+      "id": "A1",
+      "tipe": "petak",
+      "subtopik": "mengenal",
+      "level": "mudah",
+      "pertanyaan": "Lingkaran dibagi 8 bagian sama besar, 3 bagian diarsir. Pecahan yang menunjukkan bagian diarsir adalah ...",
+      "opsi": [
+        "3/8",
+        "5/8",
+        "3/5",
+        "8/3"
+      ],
+      "kunci": "3/8",
+      "pembahasan": "Ada 3 bagian diarsir (pembilang) dari 8 bagian sama besar (penyebut), jadi 3/8.",
+      "visual": {
+        "bentuk": "lingkaran",
+        "pembilang": 3,
+        "penyebut": 8
+      },
+      "tp": "TP1"
+    },
+    {
+      "id": "A2",
+      "tipe": "petak",
+      "subtopik": "mengenal",
+      "level": "mudah",
+      "pertanyaan": "Pada pecahan 5/7, angka 7 disebut ...",
+      "opsi": [
+        "pembilang",
+        "penyebut",
+        "pecahan senilai",
+        "bilangan cacah"
+      ],
+      "kunci": "penyebut",
+      "pembahasan": "Angka di bawah garis pecahan disebut penyebut, menunjukkan banyak bagian sama besar.",
+      "tp": "TP1"
+    },
+    {
+      "id": "A3",
+      "tipe": "petak",
+      "subtopik": "mengenal",
+      "level": "sedang",
+      "pertanyaan": "Sebuah batang dibagi 6 bagian sama besar, 4 bagian diarsir. Pecahan bagian yang TIDAK diarsir adalah ...",
+      "opsi": [
+        "2/6",
+        "4/6",
+        "6/2",
+        "2/4"
+      ],
+      "kunci": "2/6",
+      "pembahasan": "Bagian tidak diarsir = 6 − 4 = 2 bagian dari 6, jadi 2/6 (senilai dengan 1/3).",
+      "visual": {
+        "bentuk": "batang",
+        "pembilang": 4,
+        "penyebut": 6
+      },
+      "tp": "TP1"
+    },
+    {
+      "id": "A4",
+      "tipe": "petak",
+      "subtopik": "mengenal",
+      "level": "sedang",
+      "pertanyaan": "Garis bilangan dari 0 sampai 1 dibagi menjadi 5 bagian sama panjang. Titik P berada di garis ke-3 dari 0. Titik P menunjukkan pecahan ...",
+      "opsi": [
+        "3/5",
+        "1/3",
+        "3/4",
+        "5/3"
+      ],
+      "kunci": "3/5",
+      "pembahasan": "Jarak 0 ke 1 dibagi 5 bagian, titik P di bagian ke-3, jadi 3/5.",
+      "visual": {
+        "bentuk": "garis_bilangan",
+        "pembilang": 3,
+        "penyebut": 5
+      },
+      "tp": "TP1"
+    },
+    {
+      "id": "B1",
+      "tipe": "petak",
+      "subtopik": "senilai",
+      "level": "mudah",
+      "pertanyaan": "Pecahan yang senilai dengan 1/2 adalah ...",
+      "opsi": [
+        "3/6",
+        "2/3",
+        "1/4",
+        "3/5"
+      ],
+      "kunci": "3/6",
+      "pembahasan": "1/2 = (1×3)/(2×3) = 3/6.",
+      "tp": "TP2"
+    },
+    {
+      "id": "B2",
+      "tipe": "petak",
+      "subtopik": "senilai",
+      "level": "sedang",
+      "pertanyaan": "2/3 = .../12. Bilangan yang tepat untuk mengisi titik-titik adalah ...",
+      "opsi": [
+        "8",
+        "6",
+        "9",
+        "4"
+      ],
+      "kunci": "8",
+      "pembahasan": "Penyebut 3 dikali 4 menjadi 12, maka pembilang 2 juga dikali 4: 2 × 4 = 8.",
+      "tp": "TP2"
+    },
+    {
+      "id": "B3",
+      "tipe": "petak",
+      "subtopik": "senilai",
+      "level": "sedang",
+      "pertanyaan": "Bentuk paling sederhana dari 12/18 adalah ...",
+      "opsi": [
+        "2/3",
+        "3/4",
+        "4/6",
+        "6/9"
+      ],
+      "kunci": "2/3",
+      "pembahasan": "FPB dari 12 dan 18 adalah 6. 12 ÷ 6 = 2 dan 18 ÷ 6 = 3, jadi 2/3. (4/6 dan 6/9 memang senilai, tetapi belum paling sederhana.)",
+      "tp": "TP2"
+    },
+    {
+      "id": "B4",
+      "tipe": "petak",
+      "subtopik": "senilai",
+      "level": "sukar",
+      "pertanyaan": "Kue Rina dipotong 8 bagian sama besar, ia makan 2 potong. Kue Dodi sama besarnya dipotong 4 bagian sama besar, ia makan 1 potong. Siapa yang makan lebih banyak?",
+      "opsi": [
+        "Sama banyak",
+        "Rina",
+        "Dodi",
+        "Tidak bisa dibandingkan"
+      ],
+      "kunci": "Sama banyak",
+      "pembahasan": "Rina makan 2/8 dan Dodi makan 1/4. Karena 2/8 = 1/4, keduanya makan sama banyak.",
+      "konteks": "makanan",
+      "tp": "TP2"
+    },
+    {
+      "id": "C1",
+      "tipe": "petak",
+      "subtopik": "membandingkan",
+      "level": "mudah",
+      "pertanyaan": "Tanda yang tepat untuk 3/7 ... 5/7 adalah ...",
+      "opsi": [
+        "<",
+        ">",
+        "="
+      ],
+      "kunci": "<",
+      "pembahasan": "Penyebutnya sama (7), cukup bandingkan pembilang: 3 < 5, jadi 3/7 < 5/7.",
+      "tp": "TP3"
+    },
+    {
+      "id": "C2",
+      "tipe": "petak",
+      "subtopik": "membandingkan",
+      "level": "sedang",
+      "pertanyaan": "Tanda yang tepat untuk 2/3 ... 3/5 adalah ...",
+      "opsi": [
+        "<",
+        ">",
+        "="
+      ],
+      "kunci": ">",
+      "pembahasan": "Samakan penyebut menjadi 15: 2/3 = 10/15 dan 3/5 = 9/15. Karena 10 > 9, maka 2/3 > 3/5.",
+      "tp": "TP3"
+    },
+    {
+      "id": "C3",
+      "tipe": "petak",
+      "subtopik": "membandingkan",
+      "level": "sedang",
+      "pertanyaan": "Pecahan yang paling besar di antara 1/2, 3/8, 5/12, dan 2/5 adalah ...",
+      "opsi": [
+        "1/2",
+        "3/8",
+        "5/12",
+        "2/5"
+      ],
+      "kunci": "1/2",
+      "pembahasan": "Samakan penyebut menjadi 120: 1/2 = 60/120, 3/8 = 45/120, 5/12 = 50/120, 2/5 = 48/120. Yang terbesar 60/120 = 1/2.",
+      "tp": "TP3"
+    },
+    {
+      "id": "C4",
+      "tipe": "petak",
+      "subtopik": "membandingkan",
+      "level": "sukar",
+      "pertanyaan": "Kebun kopi Pak Made luasnya 3/4 hektare, kebun kopi Pak Udin luasnya 5/6 hektare. Kebun siapa yang lebih luas?",
+      "opsi": [
+        "Pak Udin",
+        "Pak Made",
+        "Sama luas",
+        "Tidak bisa dibandingkan"
+      ],
+      "kunci": "Pak Udin",
+      "pembahasan": "Samakan penyebut menjadi 12: 3/4 = 9/12 dan 5/6 = 10/12. Karena 10/12 > 9/12, kebun Pak Udin lebih luas.",
+      "konteks": "kebun kopi",
+      "tp": "TP3"
+    },
+    {
+      "id": "D1",
+      "tipe": "petak",
+      "subtopik": "mengurutkan",
+      "level": "sedang",
+      "pertanyaan": "Urutan pecahan 1/2, 1/3, 1/6 dari yang terkecil adalah ...",
+      "opsi": [
+        "1/6, 1/3, 1/2",
+        "1/2, 1/3, 1/6",
+        "1/3, 1/6, 1/2",
+        "1/6, 1/2, 1/3"
+      ],
+      "kunci": "1/6, 1/3, 1/2",
+      "pembahasan": "Pembilang sama (1), semakin besar penyebut semakin kecil nilainya: 1/6 < 1/3 < 1/2.",
+      "tp": "TP4"
+    },
+    {
+      "id": "D2",
+      "tipe": "petak",
+      "subtopik": "mengurutkan",
+      "level": "sedang",
+      "pertanyaan": "Urutan pecahan 3/4, 2/3, 5/6 dari yang terbesar adalah ...",
+      "opsi": [
+        "5/6, 3/4, 2/3",
+        "3/4, 2/3, 5/6",
+        "2/3, 3/4, 5/6",
+        "3/4, 5/6, 2/3"
+      ],
+      "kunci": "5/6, 3/4, 2/3",
+      "pembahasan": "Samakan penyebut menjadi 12: 3/4 = 9/12, 2/3 = 8/12, 5/6 = 10/12. Dari terbesar: 5/6, 3/4, 2/3.",
+      "tp": "TP4"
+    },
+    {
+      "id": "D3",
+      "tipe": "petak",
+      "subtopik": "mengurutkan",
+      "level": "sukar",
+      "pertanyaan": "Urutan pecahan 2/5, 1/2, 3/10, 7/10 dari yang terkecil adalah ...",
+      "opsi": [
+        "3/10, 2/5, 1/2, 7/10",
+        "2/5, 3/10, 1/2, 7/10",
+        "1/2, 2/5, 3/10, 7/10",
+        "3/10, 1/2, 2/5, 7/10"
+      ],
+      "kunci": "3/10, 2/5, 1/2, 7/10",
+      "pembahasan": "Samakan penyebut menjadi 10: 2/5 = 4/10, 1/2 = 5/10, 3/10, 7/10. Dari terkecil: 3/10, 2/5, 1/2, 7/10.",
+      "tp": "TP4"
+    },
+    {
+      "id": "D4",
+      "tipe": "petak",
+      "subtopik": "mengurutkan",
+      "level": "sukar",
+      "pertanyaan": "Ani minum 3/5 liter susu, Beni 1/2 liter, dan Cici 7/10 liter. Urutan dari yang minum paling sedikit adalah ...",
+      "opsi": [
+        "Beni, Ani, Cici",
+        "Ani, Beni, Cici",
+        "Cici, Ani, Beni",
+        "Beni, Cici, Ani"
+      ],
+      "kunci": "Beni, Ani, Cici",
+      "pembahasan": "Samakan penyebut menjadi 10: Ani 6/10, Beni 5/10, Cici 7/10. Dari paling sedikit: Beni, Ani, Cici.",
+      "konteks": "minuman",
+      "tp": "TP4"
+    },
+    {
+      "id": "E1",
+      "tipe": "petak",
+      "subtopik": "penjumlahan",
+      "level": "mudah",
+      "pertanyaan": "1/2 + 1/4 = ...",
+      "opsi": [
+        "3/4",
+        "2/6",
+        "2/4",
+        "1/6"
+      ],
+      "kunci": "3/4",
+      "pembahasan": "1/2 = 2/4, maka 2/4 + 1/4 = 3/4.",
+      "tp": "TP5"
+    },
+    {
+      "id": "E2",
+      "tipe": "petak",
+      "subtopik": "penjumlahan",
+      "level": "sedang",
+      "pertanyaan": "2/3 + 1/4 = ...",
+      "opsi": [
+        "11/12",
+        "3/7",
+        "3/12",
+        "8/12"
+      ],
+      "kunci": "11/12",
+      "pembahasan": "KPK 3 dan 4 adalah 12. 2/3 = 8/12, 1/4 = 3/12. 8/12 + 3/12 = 11/12. (Ingat: penyebut tidak ikut dijumlahkan!)",
+      "tp": "TP5"
+    },
+    {
+      "id": "E3",
+      "tipe": "petak",
+      "subtopik": "penjumlahan",
+      "level": "sedang",
+      "pertanyaan": "3/5 + 1/10 = ...",
+      "opsi": [
+        "7/10",
+        "4/15",
+        "4/10",
+        "6/10"
+      ],
+      "kunci": "7/10",
+      "pembahasan": "3/5 = 6/10, maka 6/10 + 1/10 = 7/10.",
+      "tp": "TP5"
+    },
+    {
+      "id": "E4",
+      "tipe": "petak",
+      "subtopik": "penjumlahan",
+      "level": "sukar",
+      "pertanyaan": "Ibu membeli 1/2 kg gula pasir dan 2/5 kg gula merah di pasar. Berapa kg berat gula seluruhnya?",
+      "opsi": [
+        "9/10 kg",
+        "3/7 kg",
+        "3/10 kg",
+        "1 kg"
+      ],
+      "kunci": "9/10 kg",
+      "pembahasan": "KPK 2 dan 5 adalah 10. 1/2 = 5/10, 2/5 = 4/10. 5/10 + 4/10 = 9/10 kg.",
+      "konteks": "pasar",
+      "tp": "TP7"
+    },
+    {
+      "id": "E5",
+      "tipe": "petak",
+      "subtopik": "penjumlahan",
+      "level": "sukar",
+      "pertanyaan": "3/4 + 2/3 = ...",
+      "opsi": [
+        "17/12",
+        "5/7",
+        "5/12",
+        "6/12"
+      ],
+      "kunci": "17/12",
+      "pembahasan": "KPK 4 dan 3 adalah 12. 3/4 = 9/12, 2/3 = 8/12. 9/12 + 8/12 = 17/12 = 1 5/12.",
+      "tp": "TP5"
+    },
+    {
+      "id": "F1",
+      "tipe": "petak",
+      "subtopik": "pengurangan",
+      "level": "mudah",
+      "pertanyaan": "3/4 − 1/2 = ...",
+      "opsi": [
+        "1/4",
+        "5/4",
+        "2/4",
+        "1/2"
+      ],
+      "kunci": "1/4",
+      "pembahasan": "1/2 = 2/4, maka 3/4 − 2/4 = 1/4.",
+      "tp": "TP6"
+    },
+    {
+      "id": "F2",
+      "tipe": "petak",
+      "subtopik": "pengurangan",
+      "level": "sedang",
+      "pertanyaan": "5/6 − 1/3 = ...",
+      "opsi": [
+        "1/2",
+        "4/3",
+        "4/6",
+        "2/3"
+      ],
+      "kunci": "1/2",
+      "pembahasan": "1/3 = 2/6, maka 5/6 − 2/6 = 3/6 = 1/2.",
+      "tp": "TP6"
+    },
+    {
+      "id": "F3",
+      "tipe": "petak",
+      "subtopik": "pengurangan",
+      "level": "sedang",
+      "pertanyaan": "4/5 − 1/2 = ...",
+      "opsi": [
+        "3/10",
+        "13/10",
+        "3/5",
+        "1/10"
+      ],
+      "kunci": "3/10",
+      "pembahasan": "KPK 5 dan 2 adalah 10. 4/5 = 8/10, 1/2 = 5/10. 8/10 − 5/10 = 3/10.",
+      "tp": "TP6"
+    },
+    {
+      "id": "F4",
+      "tipe": "petak",
+      "subtopik": "pengurangan",
+      "level": "sukar",
+      "pertanyaan": "Siti punya pita sepanjang 7/8 meter. Ia memakai 1/4 meter untuk membuat bunga. Sisa pita Siti adalah ...",
+      "opsi": [
+        "5/8 meter",
+        "6/4 meter",
+        "6/8 meter",
+        "3/8 meter"
+      ],
+      "kunci": "5/8 meter",
+      "pembahasan": "1/4 = 2/8, maka 7/8 − 2/8 = 5/8 meter.",
+      "konteks": "kerajinan",
+      "tp": "TP7"
+    },
+    {
+      "id": "F5",
+      "tipe": "petak",
+      "subtopik": "pengurangan",
+      "level": "sukar",
+      "pertanyaan": "Ayah membawa 5/6 karung pupuk ke sawah. Sebanyak 2/9 karung digunakan. Sisa pupuk Ayah adalah ...",
+      "opsi": [
+        "11/18 karung",
+        "19/18 karung",
+        "3/18 karung",
+        "7/18 karung"
+      ],
+      "kunci": "11/18 karung",
+      "pembahasan": "KPK 6 dan 9 adalah 18. 5/6 = 15/18, 2/9 = 4/18. 15/18 − 4/18 = 11/18 karung.",
+      "konteks": "sawah",
+      "tp": "TP7"
+    },
+    {
+      "id": "T1",
+      "tipe": "tantangan",
+      "subtopik": "campuran",
+      "level": "sukar",
+      "pertanyaan": "Rani punya 3/4 bungkus keripik pisang. Ia memberi adiknya 1/3 bungkus, lalu membeli lagi 1/6 bungkus. Keripik Rani sekarang ... bungkus.",
+      "opsi": [
+        "7/12",
+        "5/12",
+        "1/2",
+        "11/12"
+      ],
+      "kunci": "7/12",
+      "pembahasan": "KPK 4, 3, 6 adalah 12. 9/12 − 4/12 + 2/12 = 7/12 bungkus.",
+      "konteks": "makanan khas Lampung",
+      "tp": "TP7"
+    },
+    {
+      "id": "T2",
+      "tipe": "tantangan",
+      "subtopik": "penjumlahan",
+      "level": "sukar",
+      "pertanyaan": "1/3 + ... = 5/6. Pecahan yang tepat adalah ...",
+      "opsi": [
+        "1/2",
+        "4/3",
+        "1/3",
+        "4/6"
+      ],
+      "kunci": "1/2",
+      "pembahasan": "5/6 − 1/3 = 5/6 − 2/6 = 3/6 = 1/2. Cek: 1/3 + 1/2 = 2/6 + 3/6 = 5/6.",
+      "tp": "TP5"
+    },
+    {
+      "id": "T3",
+      "tipe": "tantangan",
+      "subtopik": "membandingkan",
+      "level": "sukar",
+      "pertanyaan": "Pecahan yang nilainya di antara 1/3 dan 1/2 adalah ...",
+      "opsi": [
+        "2/5",
+        "1/4",
+        "3/5",
+        "1/6"
+      ],
+      "kunci": "2/5",
+      "pembahasan": "Samakan penyebut menjadi 30: 1/3 = 10/30, 2/5 = 12/30, 1/2 = 15/30. Jadi 10/30 < 12/30 < 15/30.",
+      "tp": "TP3"
+    },
+    {
+      "id": "T4",
+      "tipe": "tantangan",
+      "subtopik": "campuran",
+      "level": "sukar",
+      "pertanyaan": "Nelayan mendapat ikan. 2/5 bagian dijual di pasar, 1/4 bagian diberikan ke tetangga, sisanya dibawa pulang. Bagian ikan yang dibawa pulang adalah ...",
+      "opsi": [
+        "7/20",
+        "13/20",
+        "3/9",
+        "1/20"
+      ],
+      "kunci": "7/20",
+      "pembahasan": "Dijual + diberikan = 8/20 + 5/20 = 13/20. Sisa = 20/20 − 13/20 = 7/20.",
+      "konteks": "nelayan",
+      "tp": "TP7"
+    },
+    {
+      "id": "T5",
+      "tipe": "tantangan",
+      "subtopik": "penjumlahan",
+      "level": "sukar",
+      "pertanyaan": "Manakah pengerjaan yang BENAR?",
+      "opsi": [
+        "1/2 + 1/3 = 5/6",
+        "1/2 + 1/3 = 2/5",
+        "1/2 + 1/3 = 2/6",
+        "1/2 + 1/3 = 1/5"
+      ],
+      "kunci": "1/2 + 1/3 = 5/6",
+      "pembahasan": "Kesalahan umum: menjumlahkan pembilang dengan pembilang dan penyebut dengan penyebut (2/5). Yang benar: samakan penyebut, 3/6 + 2/6 = 5/6.",
+      "tp": "TP5"
+    },
+    {
+      "id": "T6",
+      "tipe": "tantangan",
+      "subtopik": "pengurangan",
+      "level": "sukar",
+      "pertanyaan": "Kain tapis panjangnya 9/10 meter, dipotong 2/5 meter untuk hiasan. Sisa kain tapis adalah ...",
+      "opsi": [
+        "1/2 meter",
+        "7/5 meter",
+        "7/10 meter",
+        "1/5 meter"
+      ],
+      "kunci": "1/2 meter",
+      "pembahasan": "2/5 = 4/10, maka 9/10 − 4/10 = 5/10 = 1/2 meter.",
+      "konteks": "budaya Lampung",
+      "tp": "TP7"
+    },
+    {
+      "id": "RA1",
+      "tipe": "turnamen",
+      "subtopik": "membandingkan",
+      "level": "sedang",
+      "pertanyaan": "Tanda yang tepat untuk 3/4 ... 2/3 adalah ...",
+      "opsi": [
+        "<",
+        ">",
+        "="
+      ],
+      "kunci": ">",
+      "pembahasan": "Samakan penyebut menjadi 12: 3/4 = 9/12 dan 2/3 = 8/12. Jadi 3/4 > 2/3.",
+      "paket": "A",
+      "tp": "TP3"
+    },
+    {
+      "id": "RA2",
+      "tipe": "turnamen",
+      "subtopik": "mengurutkan",
+      "level": "sedang",
+      "pertanyaan": "Urutan pecahan 1/2, 2/5, 3/10 dari yang terkecil adalah ...",
+      "opsi": [
+        "3/10, 2/5, 1/2",
+        "1/2, 2/5, 3/10",
+        "3/10, 1/2, 2/5",
+        "2/5, 3/10, 1/2"
+      ],
+      "kunci": "3/10, 2/5, 1/2",
+      "pembahasan": "Samakan penyebut menjadi 10: 1/2 = 5/10, 2/5 = 4/10, 3/10 = 3/10. Dari terkecil: 3/10, 2/5, 1/2.",
+      "paket": "A",
+      "tp": "TP4"
+    },
+    {
+      "id": "RA3",
+      "tipe": "turnamen",
+      "subtopik": "penjumlahan",
+      "level": "sedang",
+      "pertanyaan": "1/3 + 1/2 = ...",
+      "opsi": [
+        "5/6",
+        "2/5",
+        "2/6",
+        "4/6"
+      ],
+      "kunci": "5/6",
+      "pembahasan": "KPK 3 dan 2 adalah 6. 2/6 + 3/6 = 5/6.",
+      "paket": "A",
+      "tp": "TP5"
+    },
+    {
+      "id": "RA4",
+      "tipe": "turnamen",
+      "subtopik": "pengurangan",
+      "level": "sedang",
+      "pertanyaan": "3/4 − 1/3 = ...",
+      "opsi": [
+        "5/12",
+        "13/12",
+        "2/12",
+        "6/12"
+      ],
+      "kunci": "5/12",
+      "pembahasan": "KPK 4 dan 3 adalah 12. 9/12 − 4/12 = 5/12.",
+      "paket": "A",
+      "tp": "TP6"
+    },
+    {
+      "id": "RA5",
+      "tipe": "turnamen",
+      "subtopik": "pengurangan",
+      "level": "sukar",
+      "pertanyaan": "Sari membeli 5/6 kg tepung, lalu memakai 1/4 kg untuk membuat kue. Sisa tepung Sari adalah ...",
+      "opsi": [
+        "7/12 kg",
+        "4/12 kg",
+        "13/12 kg",
+        "9/12 kg"
+      ],
+      "kunci": "7/12 kg",
+      "pembahasan": "KPK 6 dan 4 adalah 12. 10/12 − 3/12 = 7/12 kg.",
+      "konteks": "kehidupan sehari-hari",
+      "paket": "A",
+      "tp": "TP7"
+    },
+    {
+      "id": "RB1",
+      "tipe": "turnamen",
+      "subtopik": "membandingkan",
+      "level": "sedang",
+      "pertanyaan": "Tanda yang tepat untuk 2/5 ... 1/3 adalah ...",
+      "opsi": [
+        "<",
+        ">",
+        "="
+      ],
+      "kunci": ">",
+      "pembahasan": "Samakan penyebut menjadi 15: 2/5 = 6/15 dan 1/3 = 5/15. Jadi 2/5 > 1/3.",
+      "paket": "B",
+      "tp": "TP3"
+    },
+    {
+      "id": "RB2",
+      "tipe": "turnamen",
+      "subtopik": "mengurutkan",
+      "level": "sedang",
+      "pertanyaan": "Urutan pecahan 2/3, 1/2, 5/6 dari yang terkecil adalah ...",
+      "opsi": [
+        "1/2, 2/3, 5/6",
+        "2/3, 1/2, 5/6",
+        "5/6, 2/3, 1/2",
+        "1/2, 5/6, 2/3"
+      ],
+      "kunci": "1/2, 2/3, 5/6",
+      "pembahasan": "Samakan penyebut menjadi 6: 2/3 = 4/6, 1/2 = 3/6, 5/6 = 5/6. Dari terkecil: 1/2, 2/3, 5/6.",
+      "paket": "B",
+      "tp": "TP4"
+    },
+    {
+      "id": "RB3",
+      "tipe": "turnamen",
+      "subtopik": "penjumlahan",
+      "level": "sedang",
+      "pertanyaan": "1/2 + 1/5 = ...",
+      "opsi": [
+        "7/10",
+        "2/7",
+        "2/10",
+        "6/10"
+      ],
+      "kunci": "7/10",
+      "pembahasan": "KPK 2 dan 5 adalah 10. 5/10 + 2/10 = 7/10.",
+      "paket": "B",
+      "tp": "TP5"
+    },
+    {
+      "id": "RB4",
+      "tipe": "turnamen",
+      "subtopik": "pengurangan",
+      "level": "sedang",
+      "pertanyaan": "4/5 − 1/3 = ...",
+      "opsi": [
+        "7/15",
+        "17/15",
+        "3/15",
+        "8/15"
+      ],
+      "kunci": "7/15",
+      "pembahasan": "KPK 5 dan 3 adalah 15. 12/15 − 5/15 = 7/15.",
+      "paket": "B",
+      "tp": "TP6"
+    },
+    {
+      "id": "RB5",
+      "tipe": "turnamen",
+      "subtopik": "pengurangan",
+      "level": "sukar",
+      "pertanyaan": "Doni membawa 7/10 liter air minum ke sekolah. Ia meminum 1/4 liter saat istirahat. Sisa air minum Doni adalah ...",
+      "opsi": [
+        "9/20 liter",
+        "6/20 liter",
+        "19/20 liter",
+        "11/20 liter"
+      ],
+      "kunci": "9/20 liter",
+      "pembahasan": "KPK 10 dan 4 adalah 20. 14/20 − 5/20 = 9/20 liter.",
+      "konteks": "kehidupan sehari-hari",
+      "paket": "B",
+      "tp": "TP7"
+    },
+    {
+      "id": "RC1",
+      "tipe": "turnamen",
+      "subtopik": "membandingkan",
+      "level": "sedang",
+      "pertanyaan": "Tanda yang tepat untuk 3/5 ... 2/3 adalah ...",
+      "opsi": [
+        "<",
+        ">",
+        "="
+      ],
+      "kunci": "<",
+      "pembahasan": "Samakan penyebut menjadi 15: 3/5 = 9/15 dan 2/3 = 10/15. Jadi 3/5 < 2/3.",
+      "paket": "C",
+      "tp": "TP3"
+    },
+    {
+      "id": "RC2",
+      "tipe": "turnamen",
+      "subtopik": "mengurutkan",
+      "level": "sedang",
+      "pertanyaan": "Urutan pecahan 3/4, 5/8, 1/2 dari yang terkecil adalah ...",
+      "opsi": [
+        "1/2, 5/8, 3/4",
+        "3/4, 5/8, 1/2",
+        "1/2, 3/4, 5/8",
+        "5/8, 1/2, 3/4"
+      ],
+      "kunci": "1/2, 5/8, 3/4",
+      "pembahasan": "Samakan penyebut menjadi 8: 3/4 = 6/8, 5/8 = 5/8, 1/2 = 4/8. Dari terkecil: 1/2, 5/8, 3/4.",
+      "paket": "C",
+      "tp": "TP4"
+    },
+    {
+      "id": "RC3",
+      "tipe": "turnamen",
+      "subtopik": "penjumlahan",
+      "level": "sedang",
+      "pertanyaan": "1/3 + 1/4 = ...",
+      "opsi": [
+        "7/12",
+        "2/7",
+        "2/12",
+        "6/12"
+      ],
+      "kunci": "7/12",
+      "pembahasan": "KPK 3 dan 4 adalah 12. 4/12 + 3/12 = 7/12.",
+      "paket": "C",
+      "tp": "TP5"
+    },
+    {
+      "id": "RC4",
+      "tipe": "turnamen",
+      "subtopik": "pengurangan",
+      "level": "sedang",
+      "pertanyaan": "2/3 − 1/4 = ...",
+      "opsi": [
+        "5/12",
+        "11/12",
+        "1/12",
+        "6/12"
+      ],
+      "kunci": "5/12",
+      "pembahasan": "KPK 3 dan 4 adalah 12. 8/12 − 3/12 = 5/12.",
+      "paket": "C",
+      "tp": "TP6"
+    },
+    {
+      "id": "RC5",
+      "tipe": "turnamen",
+      "subtopik": "pengurangan",
+      "level": "sukar",
+      "pertanyaan": "Bibi memiliki 5/6 kg cabai. Sebanyak 4/9 kg dipakai untuk membuat sambal. Sisa cabai Bibi adalah ...",
+      "opsi": [
+        "7/18 kg",
+        "1/18 kg",
+        "23/18 kg",
+        "9/18 kg"
+      ],
+      "kunci": "7/18 kg",
+      "pembahasan": "KPK 6 dan 9 adalah 18. 15/18 − 8/18 = 7/18 kg.",
+      "konteks": "kehidupan sehari-hari",
+      "paket": "C",
+      "tp": "TP7"
+    }
+  ]
+}
