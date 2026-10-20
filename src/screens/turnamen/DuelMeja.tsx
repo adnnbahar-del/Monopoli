@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useKelasStore } from '../../store/kelasStore';
 import { SEMUA_SOAL, Soal, acakOpsi } from '../../engine/kartu';
 import { encodeKodeHasilMeja, konversiPoinTurnamen, HasilMejaRingkas } from '../../engine/turnamen';
@@ -26,9 +26,11 @@ export const DuelMeja: React.FC<DuelMejaProps> = ({
   const anggota = daftarSiswa.filter((s) => meja.anggotaIds.includes(s.id));
 
   // Ambil 5 butir soal turnamen sesuai paket (A, B, atau C)
-  const bankSoalPaket = SEMUA_SOAL.filter(
-    (s) => s.tipe === 'turnamen' && s.paket === meja.paketSoal
-  ).slice(0, 5);
+  const bankSoalPaket = useMemo(() => {
+    return SEMUA_SOAL.filter(
+      (s) => s.tipe === 'turnamen' && s.paket === meja.paketSoal
+    ).slice(0, 5);
+  }, [meja.paketSoal]);
 
   const [nomorSoal, setNomorSoal] = useState(0); // 0 - 4
   const [giliranPemainIndex, setGiliranPemainIndex] = useState(0);
@@ -42,6 +44,11 @@ export const DuelMeja: React.FC<DuelMejaProps> = ({
   const siswaAktif = anggota[giliranPemainIndex % anggota.length];
   const timSiswaAktif = daftarTim.find((t) => t.anggotaIds.includes(siswaAktif?.id));
 
+  // Stabilkan urutan opsi per soal
+  const opsiTerkocok = useMemo(() => {
+    return soalAktif ? acakOpsi(soalAktif.opsi) : [];
+  }, [soalAktif?.id]);
+
   const handleJawab = (_opsi: string, benar: boolean) => {
     if (!soalAktif || !siswaAktif) return;
 
@@ -53,11 +60,12 @@ export const DuelMeja: React.FC<DuelMejaProps> = ({
         [siswaAktif.id]: (prev[siswaAktif.id] || 0) + poin
       }));
     }
+  };
 
-    // Pindah ke nomor soal berikutnya
+  const handleLanjutKeSoalBerikutnya = () => {
     if (nomorSoal < bankSoalPaket.length - 1) {
-      setNomorSoal(nomorSoal + 1);
-      setGiliranPemainIndex(giliranPemainIndex + 1);
+      setNomorSoal((prev) => prev + 1);
+      setGiliranPemainIndex((prev) => prev + 1);
     } else {
       // Selesai seluruh 5 butir soal duel
       selesaikanSesiDuel();
@@ -215,6 +223,7 @@ export const DuelMeja: React.FC<DuelMejaProps> = ({
       {/* Tampilan Kartu Soal Duel */}
       {soalAktif && (
         <KartuSoal
+          key={`${meja.id}_soal_${nomorSoal}_${soalAktif.id}`}
           id={soalAktif.id}
           tipe="turnamen"
           subtopik={soalAktif.subtopik.toUpperCase()}
@@ -222,10 +231,18 @@ export const DuelMeja: React.FC<DuelMejaProps> = ({
           tp={soalAktif.tp}
           pertanyaan={soalAktif.pertanyaan}
           visual={soalAktif.visual}
-          opsi={acakOpsi(soalAktif.opsi)}
+          opsi={opsiTerkocok}
           kunci={soalAktif.kunci}
           pembahasan={soalAktif.pembahasan}
+          isFlippedInitial={true}
+          autoLanjutDetik={5}
           onJawab={handleJawab}
+          onLanjut={handleLanjutKeSoalBerikutnya}
+          teksLanjut={
+            nomorSoal < bankSoalPaket.length - 1
+              ? `Lanjut: Soal ${nomorSoal + 2} dari 5`
+              : 'Selesai & Lihat Hasil Duel Meja'
+          }
         />
       )}
 

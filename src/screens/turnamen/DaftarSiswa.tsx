@@ -2,19 +2,38 @@ import React, { useState } from 'react';
 import { useKelasStore } from '../../store/kelasStore';
 import { TombolChunky } from '../../components/TombolChunky';
 import { PakPeca } from '../../components/PakPeca';
-import { UserPlus, Upload, Trash2, ArrowRight } from 'lucide-react';
+import {
+  UserPlus,
+  Upload,
+  Trash2,
+  ArrowRight,
+  CloudUpload,
+  CloudDownload,
+  Loader2,
+  CheckCircle2,
+  AlertCircle
+} from 'lucide-react';
+import {
+  sinkronSiswaKeSheets,
+  tarikSiswaDariSheets,
+  SiswaSync
+} from '../../engine/sheetsService';
 
 export interface DaftarSiswaProps {
   onLanjut: () => void;
 }
 
 export const DaftarSiswa: React.FC<DaftarSiswaProps> = ({ onLanjut }) => {
-  const { daftarSiswa, tambahSiswa, hapusSiswa, imporSiswaDariTeks } = useKelasStore();
+  const { daftarSiswa, tambahSiswa, hapusSiswa, imporSiswaDariTeks, setDaftarSiswa } = useKelasStore();
   const [namaBaru, setNamaBaru] = useState('');
   const [kemampuanBaru, setKemampuanBaru] = useState<'tinggi' | 'sedang' | 'rendah'>('sedang');
   const [teksImpor, setTeksImpor] = useState('');
   const [modalImporOpen, setModalImporOpen] = useState(false);
   const [pesanError, setPesanError] = useState<string | null>(null);
+
+  // States Sinkronisasi Sheets
+  const [loadingSinkron, setLoadingSinkron] = useState<'kirim' | 'tarik' | null>(null);
+  const [pesanSheets, setPesanSheets] = useState<{ tipe: 'success' | 'error'; pesan: string } | null>(null);
 
   const handleTambah = (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,11 +61,65 @@ export const DaftarSiswa: React.FC<DaftarSiswaProps> = ({ onLanjut }) => {
     setModalImporOpen(false);
   };
 
+  // Kirim data siswa ke Google Spreadsheet
+  const handleKirimKeSheets = async () => {
+    if (daftarSiswa.length === 0) {
+      setPesanSheets({ tipe: 'error', pesan: 'Belum ada siswa untuk dikirim ke Spreadsheet.' });
+      return;
+    }
+
+    setLoadingSinkron('kirim');
+    setPesanSheets(null);
+    try {
+      const dataSiswaSync: SiswaSync[] = daftarSiswa.map((s) => ({
+        id: s.id,
+        nama: s.nama,
+        kemampuan: s.kemampuan
+      }));
+      const res = await sinkronSiswaKeSheets(dataSiswaSync);
+      setPesanSheets({
+        tipe: res.sukses ? 'success' : 'error',
+        pesan: res.pesan
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setPesanSheets({ tipe: 'error', pesan: `Gagal mengirim siswa: ${msg}` });
+    } finally {
+      setLoadingSinkron(null);
+    }
+  };
+
+  // Tarik data siswa dari Google Spreadsheet
+  const handleTarikDariSheets = async () => {
+    setLoadingSinkron('tarik');
+    setPesanSheets(null);
+    try {
+      const res = await tarikSiswaDariSheets();
+      if (res.sukses && res.data && res.data.length > 0) {
+        setDaftarSiswa(res.data);
+        setPesanSheets({
+          tipe: 'success',
+          pesan: `Berhasil memuat ${res.data.length} siswa dari Google Spreadsheet!`
+        });
+      } else {
+        setPesanSheets({
+          tipe: 'error',
+          pesan: res.pesan || 'Tidak ada data siswa ditemukan di sheet.'
+        });
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setPesanSheets({ tipe: 'error', pesan: `Gagal menarik siswa: ${msg}` });
+    } finally {
+      setLoadingSinkron(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Form Tambah Siswa & Impor */}
       <div className="p-5 sm:p-6 rounded-card bg-[#FFF8EC] border-4 border-[#1E2149] shadow-soft-card space-y-4">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b-2 border-[#1E2149]/20 pb-3">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 border-b-2 border-[#1E2149]/20 pb-3">
           <div>
             <h2 className="text-xl sm:text-2xl font-display font-black text-[#1E2149]">
               Daftar Siswa Kelas V
@@ -56,15 +129,65 @@ export const DaftarSiswa: React.FC<DaftarSiswaProps> = ({ onLanjut }) => {
             </p>
           </div>
 
-          <TombolChunky
-            variant="paper"
-            size="sm"
-            icon={<Upload className="w-4 h-4" />}
-            onClick={() => setModalImporOpen(true)}
-          >
-            Impor Nama (CSV/Teks)
-          </TombolChunky>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={handleTarikDariSheets}
+              disabled={loadingSinkron !== null}
+              className="px-3 py-1.5 rounded-xl bg-white hover:bg-gray-50 text-[#1E2149] border-2 border-[#1E2149] font-display font-black text-xs flex items-center gap-1.5 shadow-xs transition-all active:translate-y-0.5"
+              title="Tarik data siswa dari Google Spreadsheet"
+            >
+              {loadingSinkron === 'tarik' ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <CloudDownload className="w-3.5 h-3.5 text-[#2EC4B6]" />
+              )}
+              <span>Tarik dari Sheets</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleKirimKeSheets}
+              disabled={loadingSinkron !== null}
+              className="px-3 py-1.5 rounded-xl bg-white hover:bg-gray-50 text-[#1E2149] border-2 border-[#1E2149] font-display font-black text-xs flex items-center gap-1.5 shadow-xs transition-all active:translate-y-0.5"
+              title="Kirim daftar siswa ke Google Spreadsheet"
+            >
+              {loadingSinkron === 'kirim' ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <CloudUpload className="w-3.5 h-3.5 text-[#FF6B35]" />
+              )}
+              <span>Kirim ke Sheets</span>
+            </button>
+
+            <TombolChunky
+              variant="paper"
+              size="sm"
+              icon={<Upload className="w-4 h-4" />}
+              onClick={() => setModalImporOpen(true)}
+            >
+              Impor Teks/CSV
+            </TombolChunky>
+          </div>
         </div>
+
+        {/* Pesan status Sinkronisasi Sheets */}
+        {pesanSheets && (
+          <div
+            className={`p-3 rounded-xl border-2 flex items-start gap-2.5 text-xs font-bold ${
+              pesanSheets.tipe === 'success'
+                ? 'bg-emerald-100/80 border-emerald-500 text-emerald-900'
+                : 'bg-red-100/80 border-red-500 text-red-900'
+            }`}
+          >
+            {pesanSheets.tipe === 'success' ? (
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+            ) : (
+              <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+            )}
+            <div className="flex-1 leading-relaxed">{pesanSheets.pesan}</div>
+          </div>
+        )}
 
         {/* Input Manual */}
         <form onSubmit={handleTambah} className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">

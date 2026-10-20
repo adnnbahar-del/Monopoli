@@ -412,6 +412,7 @@ export const PapanPermainan: React.FC<PapanPermainanProps> = ({
 
             {/* Komponen Kartu Soal 3D */}
             <KartuSoal
+              key={soalAktif.id}
               id={soalAktif.id}
               tipe={soalAktif.tipe}
               subtopik={soalAktif.subtopik.toUpperCase()}
@@ -424,6 +425,8 @@ export const PapanPermainan: React.FC<PapanPermainanProps> = ({
               kunci={soalAktif.kunci}
               pembahasan={soalAktif.pembahasan}
               onJawab={handleJawabSoal}
+              onLanjut={handleTutupSoal}
+              teksLanjut="Selesai & Lanjut Giliran"
             />
           </div>
         </div>

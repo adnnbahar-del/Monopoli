@@ -94,9 +94,15 @@ export const Pecahan: React.FC<PecahanProps> = ({
       pembilang = parseInt(campMatch[2], 10);
       penyebut = parseInt(campMatch[3], 10);
     } else {
-      const parsed = parsePecahan(value);
-      pembilang = parsed.pembilang;
-      penyebut = parsed.penyebut;
+      const pecahanMatch = value.trim().match(/^(-?\d+)\/(-?\d+)$/);
+      if (pecahanMatch) {
+        pembilang = parseInt(pecahanMatch[1], 10);
+        penyebut = parseInt(pecahanMatch[2], 10);
+      } else {
+        const parsed = parsePecahan(value);
+        pembilang = parsed.pembilang;
+        penyebut = parsed.penyebut;
+      }
     }
   }
 

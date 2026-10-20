@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "sheets:push": "clasp push",
+    "sheets:deploy": "clasp deploy -i AKfycbxErVQ4V6_co0SVNCeCDt7MemBh1Oh3S8-n7ZxfA4xwpgMYbCAigvVT9l8hjOiFdAmC"
   },
   "dependencies": {
     "@fontsource/baloo-2": "^5.1.1",
@@ -22,6 +24,7 @@
     "zustand": "^5.0.2"
   },
   "devDependencies": {
+    "@google/clasp": "^3.4.1",
     "@types/canvas-confetti": "^1.9.0",
     "@types/howler": "^2.2.12",
     "@types/node": "^22.10.2",

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Sparkles, HelpCircle, Check, X, RotateCw } from 'lucide-react';
+import { Sparkles, HelpCircle, Check, X, RotateCw, ArrowRight } from 'lucide-react';
 import { VisualPecahan, BentukVisual } from './VisualPecahan';
 import { renderTeksDenganPecahan } from './Pecahan';
 import { TombolChunky } from './TombolChunky';
@@ -26,6 +26,9 @@ export interface KartuSoalProps {
   konteks?: string;
   isFlippedInitial?: boolean;
   onJawab?: (pilihan: string, benar: boolean) => void;
+  onLanjut?: () => void;
+  teksLanjut?: string;
+  autoLanjutDetik?: number;
   className?: string;
 }
 
@@ -42,11 +45,28 @@ export const KartuSoal: React.FC<KartuSoalProps> = ({
   konteks,
   isFlippedInitial = false,
   onJawab,
+  onLanjut,
+  teksLanjut,
+  autoLanjutDetik,
   className = ''
 }) => {
   const [flipped, setFlipped] = useState(isFlippedInitial);
   const [selectedOpsi, setSelectedOpsi] = useState<string | null>(null);
   const [sudahKunci, setSudahKunci] = useState(false);
+  const [sisaAutoLanjut, setSisaAutoLanjut] = useState<number | null>(null);
+
+  // Timer auto-lanjut ke soal berikutnya setelah jawaban dikunci
+  useEffect(() => {
+    if (sisaAutoLanjut === null) return;
+    if (sisaAutoLanjut <= 0) {
+      if (onLanjut) onLanjut();
+      return;
+    }
+    const timer = setTimeout(() => {
+      setSisaAutoLanjut((prev) => (prev !== null ? prev - 1 : null));
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [sisaAutoLanjut, onLanjut]);
 
   const warnaTipe = {
     petak: 'from-[#FF6B35] to-[#FF8A80]',
@@ -65,6 +85,9 @@ export const KartuSoal: React.FC<KartuSoalProps> = ({
     setSudahKunci(true);
     const benar = kunci ? selectedOpsi.trim() === kunci.trim() : true;
     if (onJawab) onJawab(selectedOpsi, benar);
+    if (autoLanjutDetik && onLanjut) {
+      setSisaAutoLanjut(autoLanjutDetik);
+    }
   };
 
   return (
@@ -205,7 +228,7 @@ export const KartuSoal: React.FC<KartuSoalProps> = ({
             })}
           </div>
 
-          {/* Tombol Aksi Kunci Jawaban */}
+          {/* Tombol Aksi Kunci Jawaban / Pembahasan & Tombol Lanjut */}
           {!sudahKunci ? (
             <div className="pt-2">
               <TombolChunky
@@ -219,16 +242,37 @@ export const KartuSoal: React.FC<KartuSoalProps> = ({
               </TombolChunky>
             </div>
           ) : (
-            pembahasan && (
-              <div className="mt-2 p-3 rounded-2xl bg-amber-100/70 border-2 border-[#FFB627] text-xs sm:text-sm">
-                <span className="font-extrabold block text-[#FF6B35] mb-1">
-                  💡 Pembahasan:
-                </span>
-                <div className="font-semibold leading-relaxed">
-                  {renderTeksDenganPecahan(pembahasan, 'sm')}
+            <div className="mt-2 space-y-3">
+              {pembahasan && (
+                <div className="p-3 rounded-2xl bg-amber-100/70 border-2 border-[#FFB627] text-xs sm:text-sm">
+                  <span className="font-extrabold block text-[#FF6B35] mb-1">
+                    💡 Pembahasan:
+                  </span>
+                  <div className="font-semibold leading-relaxed">
+                    {renderTeksDenganPecahan(pembahasan, 'sm')}
+                  </div>
                 </div>
-              </div>
-            )
+              )}
+
+              {onLanjut && (
+                <div className="pt-1">
+                  <TombolChunky
+                    variant="primary"
+                    size="md"
+                    fullWidth
+                    icon={<ArrowRight className="w-5 h-5" />}
+                    iconPosition="right"
+                    onClick={() => {
+                      setSisaAutoLanjut(null);
+                      if (onLanjut) onLanjut();
+                    }}
+                  >
+                    {teksLanjut || 'Lanjut ke Soal Berikutnya'}
+                    {sisaAutoLanjut !== null && sisaAutoLanjut > 0 ? ` (${sisaAutoLanjut}s)` : ''}
+                  </TombolChunky>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </motion.div>

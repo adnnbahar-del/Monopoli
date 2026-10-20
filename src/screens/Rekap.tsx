@@ -1,11 +1,21 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { NavHeader } from '../components/NavHeader';
 import { Pemain, KepemilikanKios } from '../store/gameStore';
 import { PakPeca } from '../components/PakPeca';
 import { TombolChunky } from '../components/TombolChunky';
 import { Pecahan } from '../components/Pecahan';
-import { Trophy, XCircle, RotateCcw, Home, Award } from 'lucide-react';
+import {
+  Trophy,
+  XCircle,
+  RotateCcw,
+  Home,
+  CloudUpload,
+  Loader2,
+  CheckCircle2,
+  AlertCircle
+} from 'lucide-react';
+import { kirimRekapNilaiKeSheets, BarisNilaiSiswa } from '../engine/sheetsService';
 
 export interface JawabanDetail {
   soalId: string;
@@ -32,12 +42,42 @@ export const Rekap: React.FC<RekapProps> = ({
   onMainLagi,
   onKembaliBeranda
 }) => {
+  const [loadingKirim, setLoadingKirim] = useState(false);
+  const [statusKirim, setStatusKirim] = useState<{ sukses: boolean; pesan: string } | null>(null);
+
   // Urutkan peringkat pemain dari poin tertinggi
   const peringkat = [...pemain].sort((a, b) => b.poin - a.poin);
   const totalKiosTerjual = Object.keys(kepemilikan).length;
 
   // Filter soal yang salah untuk review bersama tim
   const soalPerluDiprioritaskan = riwayatJawaban.filter((j) => !j.benar);
+
+  const handleKirimSekarang = async () => {
+    setLoadingKirim(true);
+    setStatusKirim(null);
+    try {
+      const nowStr = new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' });
+      const dataNilai: BarisNilaiSiswa[] = peringkat.map((p, idx) => ({
+        waktu: nowStr,
+        nama: p.nama,
+        tim: p.timNama || 'Tim Mandiri',
+        meja: 'Meja 1',
+        poinMonopoli: p.poin,
+        poinDuel: 0,
+        totalPoinSiswa: p.poin,
+        poinTurnamen: p.poin,
+        peringkatMeja: idx + 1
+      }));
+
+      const res = await kirimRekapNilaiKeSheets(dataNilai);
+      setStatusKirim({ sukses: res.sukses, pesan: res.pesan });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setStatusKirim({ sukses: false, pesan: `Gagal mengirim nilai: ${msg}` });
+    } finally {
+      setLoadingKirim(false);
+    }
+  };
 
   return (
     <div className="min-h-screen pb-16 bg-gradient-to-br from-[#FFE3B3] to-[#FFB8A1] tapis-pattern select-none">
@@ -63,80 +103,145 @@ export const Rekap: React.FC<RekapProps> = ({
             🏆 Sesi Permainan Selesai
           </span>
           <h2 className="text-2xl sm:text-4xl font-display font-black text-[#1E2149] mt-2">
-            Selamat, {peringkat[0].nama} ({peringkat[0].timNama})!
+            Selamat, {peringkat[0]?.nama || 'Pemain'} ({peringkat[0]?.timNama || 'Tim'})!
           </h2>
           <p className="text-sm sm:text-base font-bold text-gray-700 mt-1 max-w-md">
-            Meraih skor tertinggi dengan {peringkat[0].poin} poin! Kerja sama seluruh tim sangat luar biasa.
+            Meraih skor tertinggi dengan {peringkat[0]?.poin || 0} poin! Kerja sama seluruh tim sangat luar biasa.
           </p>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full mt-6">
+            <div className="p-3 bg-white rounded-2xl border-2 border-[#1E2149] shadow-xs">
+              <span className="text-xs font-bold text-gray-500 block">Total Kios</span>
+              <span className="text-xl font-display font-black text-[#FF6B35]">
+                {totalKiosTerjual} / 20
+              </span>
+            </div>
+            <div className="p-3 bg-white rounded-2xl border-2 border-[#1E2149] shadow-xs">
+              <span className="text-xs font-bold text-gray-500 block">Total Soal</span>
+              <span className="text-xl font-display font-black text-[#2EC4B6]">
+                {riwayatJawaban.length}
+              </span>
+            </div>
+            <div className="p-3 bg-white rounded-2xl border-2 border-[#1E2149] shadow-xs">
+              <span className="text-xs font-bold text-gray-500 block">Jawaban Benar</span>
+              <span className="text-xl font-display font-black text-[#22A55B]">
+                {riwayatJawaban.filter((j) => j.benar).length}
+              </span>
+            </div>
+            <div className="p-3 bg-white rounded-2xl border-2 border-[#1E2149] shadow-xs">
+              <span className="text-xs font-bold text-gray-500 block">Akurasi</span>
+              <span className="text-xl font-display font-black text-[#1E2149]">
+                {riwayatJawaban.length > 0
+                  ? Math.round((riwayatJawaban.filter((j) => j.benar).length / riwayatJawaban.length) * 100)
+                  : 0}
+                %
+              </span>
+            </div>
+          </div>
         </motion.div>
 
-        {/* Tabel Peringkat Pemain & Kios */}
-        <div className="p-6 rounded-card bg-[#FFF8EC] border-4 border-[#1E2149] shadow-soft-card space-y-4">
-          <div className="flex items-center justify-between border-b-2 border-[#1E2149]/20 pb-3">
-            <div className="flex items-center gap-2">
-              <Award className="w-6 h-6 text-[#FF6B35]" />
-              <h3 className="text-xl font-display font-black text-[#1E2149]">
-                Papan Peringkat Sesi Ini
-              </h3>
+        {/* Kotak Sinkronisasi Google Sheets: Kirim Sekarang */}
+        <div className="p-5 rounded-card bg-gradient-to-r from-emerald-50 to-teal-50 border-4 border-[#2EC4B6] shadow-soft-card space-y-3">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-[#2EC4B6] text-white flex items-center justify-center shadow-xs">
+                <CloudUpload className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-display font-black text-base text-[#1E2149]">
+                  Kirim Rekap Nilai ke Google Spreadsheet
+                </h3>
+                <p className="text-xs font-bold text-gray-600">
+                  Simpan skor sesi ini ke Spreadsheet guru secara otomatis.
+                </p>
+              </div>
             </div>
-            <span className="text-xs font-bold text-gray-600">
-              {totalKiosTerjual} Kios Terjual
-            </span>
+
+            <TombolChunky
+              variant="primary"
+              size="md"
+              icon={loadingKirim ? <Loader2 className="w-5 h-5 animate-spin" /> : <CloudUpload className="w-5 h-5" />}
+              onClick={handleKirimSekarang}
+              disabled={loadingKirim}
+            >
+              {loadingKirim ? 'Mengirim...' : 'Kirim Sekarang'}
+            </TombolChunky>
           </div>
 
-          <div className="grid grid-cols-1 gap-2.5">
-            {peringkat.map((p, idx) => {
-              const jumlahKiosMilik = Object.values(kepemilikan).filter(
-                (k) => k.pemainId === p.id
-              ).length;
+          {statusKirim && (
+            <div
+              className={`p-3 rounded-xl border-2 flex items-start gap-2.5 text-xs font-bold ${
+                statusKirim.sukses
+                  ? 'bg-emerald-100/90 border-emerald-500 text-emerald-900'
+                  : 'bg-red-100/90 border-red-500 text-red-900'
+              }`}
+            >
+              {statusKirim.sukses ? (
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+              ) : (
+                <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+              )}
+              <div className="flex-1 leading-relaxed">{statusKirim.pesan}</div>
+            </div>
+          )}
+        </div>
 
-              return (
-                <div
-                  key={p.id}
-                  className={`
-                    p-3.5 rounded-2xl border-2 border-[#1E2149] flex items-center justify-between gap-3
-                    ${idx === 0 ? 'bg-amber-100/90 shadow-[0_3px_0_#C79E1A]' : 'bg-white shadow-xs'}
-                  `}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="w-8 h-8 rounded-full bg-[#1E2149] text-white flex items-center justify-center font-display font-black text-sm shrink-0">
-                      #{idx + 1}
+        {/* Tabel Peringkat Pemain */}
+        <div className="p-5 sm:p-6 rounded-card bg-[#FFF8EC] border-4 border-[#1E2149] shadow-soft-card space-y-3">
+          <h3 className="text-lg font-display font-black text-[#1E2149]">
+            Peringkat Skor Akhir Pemain
+          </h3>
+
+          <div className="space-y-2">
+            {peringkat.map((p, idx) => (
+              <div
+                key={p.id}
+                className="p-3 bg-white rounded-xl border-2 border-[#1E2149] flex items-center justify-between shadow-xs"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="w-8 h-8 rounded-full bg-[#1E2149] text-white font-display font-black text-sm flex items-center justify-center">
+                    #{idx + 1}
+                  </span>
+                  <div>
+                    <h4 className="font-display font-extrabold text-sm text-[#1E2149]">
+                      {p.nama}
+                    </h4>
+                    <span className="text-xs font-bold text-gray-500">
+                      {p.timNama || 'Tim Pasar Sukaraja'}
                     </span>
-                    <div
-                      className="w-9 h-9 rounded-xl border border-black flex items-center justify-center text-white font-display font-extrabold text-base shrink-0"
-                      style={{ backgroundColor: p.warna }}
-                    >
-                      {p.nama.charAt(0)}
-                    </div>
-                    <div>
-                      <div className="font-display font-black text-base text-[#1E2149]">
-                        {p.nama}
-                      </div>
-                      <div className="text-xs font-bold text-gray-500">
-                        {p.timNama} • {jumlahKiosMilik} Kios
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-4 text-right">
-                    <div className="hidden sm:block text-xs font-bold text-gray-600">
-                      <span className="text-[#22A55B]">{p.benar} Benar</span> / <span className="text-[#E5484D]">{p.salah} Salah</span>
-                    </div>
-                    <div className="font-display font-black text-xl text-[#FF6B35]">
-                      {p.poin} Poin
-                    </div>
                   </div>
                 </div>
-              );
-            })}
+
+                <div className="flex items-center gap-3 font-display font-black text-right">
+                  <div>
+                    <span className="text-lg text-[#FF6B35] block leading-none">
+                      {p.poin}
+                    </span>
+                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+                      Poin
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-lg text-[#22A55B] block leading-none">
+                      {p.benar}
+                    </span>
+                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+                      Benar
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Daftar Soal yang Perlu Dipelajari Lagi (Review Bersama) */}
+        {/* Soal yang Perlu Dipelajari Lagi */}
         {soalPerluDiprioritaskan.length > 0 && (
-          <div className="p-6 rounded-card bg-[#FFF8EC] border-4 border-[#1E2149] shadow-soft-card space-y-4">
-            <div className="flex items-center gap-2 border-b-2 border-[#1E2149]/20 pb-3">
-              <XCircle className="w-6 h-6 text-[#E5484D]" />
+          <div className="p-5 sm:p-6 rounded-card bg-[#FFF8EC] border-4 border-[#1E2149] shadow-soft-card space-y-4">
+            <div className="flex items-center gap-3 border-b-2 border-[#1E2149]/20 pb-3">
+              <div className="p-2 bg-red-100 rounded-xl border border-red-300">
+                <XCircle className="w-6 h-6 text-[#E5484D]" />
+              </div>
               <div>
                 <h3 className="text-lg font-display font-black text-[#1E2149]">
                   Soal yang Perlu Dipelajari Lagi Bersama Tim ({soalPerluDiprioritaskan.length})
