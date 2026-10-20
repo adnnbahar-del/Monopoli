@@ -10,6 +10,14 @@ import confetti from 'canvas-confetti';
 import QRCode from 'qrcode';
 import { ArrowLeft, CheckCircle, QrCode } from 'lucide-react';
 
+export type FaseDuel = 'menjawab' | 'umpan_balik';
+
+export interface JawabanDuelItem {
+  dipilih: string | null;
+  benar: boolean | null;
+  terkunci: boolean;
+}
+
 export interface DuelMejaProps {
   mejaId: string;
   onSelesaiDuel: () => void;
@@ -34,6 +42,9 @@ export const DuelMeja: React.FC<DuelMejaProps> = ({
 
   const [nomorSoal, setNomorSoal] = useState(0); // 0 - 4
   const [giliranPemainIndex, setGiliranPemainIndex] = useState(0);
+  const [faseDuel, setFaseDuel] = useState<FaseDuel>('menjawab');
+  const [bisaLanjut, setBisaLanjut] = useState(false);
+  const [jawabanDuel, setJawabanDuel] = useState<Record<string, Record<number, JawabanDuelItem>>>({});
   const [skorDuel, setSkorDuel] = useState<Record<string, number>>({});
   const [poinMonopoli, setPoinMonopoli] = useState<Record<string, number>>({});
   const [sudahSelesai, setSudahSelesai] = useState(false);
@@ -44,28 +55,81 @@ export const DuelMeja: React.FC<DuelMejaProps> = ({
   const siswaAktif = anggota[giliranPemainIndex % anggota.length];
   const timSiswaAktif = daftarTim.find((t) => t.anggotaIds.includes(siswaAktif?.id));
 
+  // Ambil data jawaban tersimpan untuk pemain dan soal aktif
+  const jawabanAktif: JawabanDuelItem = siswaAktif
+    ? (jawabanDuel[siswaAktif.id]?.[nomorSoal] || { dipilih: null, benar: null, terkunci: false })
+    : { dipilih: null, benar: null, terkunci: false };
+
   // Stabilkan urutan opsi per soal
   const opsiTerkocok = useMemo(() => {
     return soalAktif ? acakOpsi(soalAktif.opsi) : [];
   }, [soalAktif?.id]);
 
-  const handleJawab = (_opsi: string, benar: boolean) => {
-    if (!soalAktif || !siswaAktif) return;
+  // Handler memilih opsi
+  const handlePilihOpsi = (opsi: string) => {
+    if (faseDuel !== 'menjawab' || !siswaAktif || jawabanAktif.terkunci) return;
+    setJawabanDuel((prev) => ({
+      ...prev,
+      [siswaAktif.id]: {
+        ...(prev[siswaAktif.id] || {}),
+        [nomorSoal]: {
+          dipilih: opsi,
+          benar: null,
+          terkunci: false
+        }
+      }
+    }));
+  };
+
+  // Handler Kunci Jawaban (state machine: 'menjawab' -> 'umpan_balik')
+  // Indeks soal TIDAK PERNAH bertambah di sini
+  const handleKunciJawaban = () => {
+    if (faseDuel !== 'menjawab' || !siswaAktif || !soalAktif) return;
+    if (!jawabanAktif.dipilih || jawabanAktif.terkunci) return;
+
+    const benar = soalAktif.kunci ? jawabanAktif.dipilih.trim() === soalAktif.kunci.trim() : true;
+    const poin = soalAktif.level === 'sukar' ? 30 : 20;
+
+    // Simpan status terkunci per giliran
+    setJawabanDuel((prev) => ({
+      ...prev,
+      [siswaAktif.id]: {
+        ...(prev[siswaAktif.id] || {}),
+        [nomorSoal]: {
+          dipilih: jawabanAktif.dipilih,
+          benar,
+          terkunci: true
+        }
+      }
+    }));
 
     if (benar) {
       confetti({ particleCount: 60, spread: 60, origin: { y: 0.6 } });
-      const poin = soalAktif.level === 'sukar' ? 30 : 20;
       setSkorDuel((prev) => ({
         ...prev,
         [siswaAktif.id]: (prev[siswaAktif.id] || 0) + poin
       }));
     }
+
+    setFaseDuel('umpan_balik');
+    setBisaLanjut(false);
+
+    // Guard 500 ms sebelum tombol Lanjut aktif
+    setTimeout(() => {
+      setBisaLanjut(true);
+    }, 500);
   };
 
+  // Handler Lanjut (state machine: 'umpan_balik' -> 'menjawab' soal berikutnya)
+  // Indeks soal HANYA bertambah di sini
   const handleLanjutKeSoalBerikutnya = () => {
+    if (faseDuel !== 'umpan_balik' || !bisaLanjut) return;
+
     if (nomorSoal < bankSoalPaket.length - 1) {
       setNomorSoal((prev) => prev + 1);
       setGiliranPemainIndex((prev) => prev + 1);
+      setFaseDuel('menjawab');
+      setBisaLanjut(false);
     } else {
       // Selesai seluruh 5 butir soal duel
       selesaikanSesiDuel();
@@ -200,8 +264,8 @@ export const DuelMeja: React.FC<DuelMejaProps> = ({
           <span className="text-xs font-display font-black uppercase text-[#FF6B35]">
             {meja.nama} • Paket {meja.paketSoal}
           </span>
-          <h2 className="text-xl sm:text-2xl font-display font-black text-[#1E2149]">
-            Duel Turnamen — Soal {nomorSoal + 1} dari 5
+          <h2 data-testid="hud-duel" className="text-xl sm:text-2xl font-display font-black text-[#1E2149]">
+            Giliran: {siswaAktif?.nama} · Soal {nomorSoal + 1} dari 5
           </h2>
         </div>
 
@@ -221,9 +285,9 @@ export const DuelMeja: React.FC<DuelMejaProps> = ({
       </div>
 
       {/* Tampilan Kartu Soal Duel */}
-      {soalAktif && (
+      {soalAktif && siswaAktif && (
         <KartuSoal
-          key={`${meja.id}_soal_${nomorSoal}_${soalAktif.id}`}
+          key={`${siswaAktif.id}-${nomorSoal}`}
           id={soalAktif.id}
           tipe="turnamen"
           subtopik={soalAktif.subtopik.toUpperCase()}
@@ -235,8 +299,11 @@ export const DuelMeja: React.FC<DuelMejaProps> = ({
           kunci={soalAktif.kunci}
           pembahasan={soalAktif.pembahasan}
           isFlippedInitial={true}
-          autoLanjutDetik={5}
-          onJawab={handleJawab}
+          selectedOpsi={jawabanAktif.dipilih}
+          sudahKunci={faseDuel === 'umpan_balik' || jawabanAktif.terkunci}
+          bisaLanjut={bisaLanjut}
+          onPilihOpsi={handlePilihOpsi}
+          onKunciJawaban={handleKunciJawaban}
           onLanjut={handleLanjutKeSoalBerikutnya}
           teksLanjut={
             nomorSoal < bankSoalPaket.length - 1

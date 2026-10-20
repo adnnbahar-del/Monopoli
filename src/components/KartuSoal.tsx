@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Sparkles, HelpCircle, Check, X, RotateCw, ArrowRight } from 'lucide-react';
 import { VisualPecahan, BentukVisual } from './VisualPecahan';
@@ -25,10 +25,14 @@ export interface KartuSoalProps {
   };
   konteks?: string;
   isFlippedInitial?: boolean;
+  selectedOpsi?: string | null;
+  sudahKunci?: boolean;
+  bisaLanjut?: boolean;
+  onPilihOpsi?: (opsi: string) => void;
+  onKunciJawaban?: () => void;
   onJawab?: (pilihan: string, benar: boolean) => void;
   onLanjut?: () => void;
   teksLanjut?: string;
-  autoLanjutDetik?: number;
   className?: string;
 }
 
@@ -44,29 +48,25 @@ export const KartuSoal: React.FC<KartuSoalProps> = ({
   visual,
   konteks,
   isFlippedInitial = false,
+  selectedOpsi: controlledOpsi,
+  sudahKunci: controlledSudahKunci,
+  bisaLanjut = true,
+  onPilihOpsi,
+  onKunciJawaban,
   onJawab,
   onLanjut,
   teksLanjut,
-  autoLanjutDetik,
   className = ''
 }) => {
   const [flipped, setFlipped] = useState(isFlippedInitial);
-  const [selectedOpsi, setSelectedOpsi] = useState<string | null>(null);
-  const [sudahKunci, setSudahKunci] = useState(false);
-  const [sisaAutoLanjut, setSisaAutoLanjut] = useState<number | null>(null);
+  const [localSelectedOpsi, setLocalSelectedOpsi] = useState<string | null>(null);
+  const [localSudahKunci, setLocalSudahKunci] = useState(false);
 
-  // Timer auto-lanjut ke soal berikutnya setelah jawaban dikunci
-  useEffect(() => {
-    if (sisaAutoLanjut === null) return;
-    if (sisaAutoLanjut <= 0) {
-      if (onLanjut) onLanjut();
-      return;
-    }
-    const timer = setTimeout(() => {
-      setSisaAutoLanjut((prev) => (prev !== null ? prev - 1 : null));
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, [sisaAutoLanjut, onLanjut]);
+  const isControlledOpsi = controlledOpsi !== undefined;
+  const isControlledKunci = controlledSudahKunci !== undefined;
+
+  const currentSelectedOpsi = isControlledOpsi ? controlledOpsi : localSelectedOpsi;
+  const currentSudahKunci = isControlledKunci ? controlledSudahKunci : localSudahKunci;
 
   const warnaTipe = {
     petak: 'from-[#FF6B35] to-[#FF8A80]',
@@ -76,17 +76,22 @@ export const KartuSoal: React.FC<KartuSoalProps> = ({
   }[tipe];
 
   const handlePilih = (ops: string) => {
-    if (sudahKunci) return;
-    setSelectedOpsi(ops);
+    if (currentSudahKunci) return;
+    if (onPilihOpsi) {
+      onPilihOpsi(ops);
+    } else {
+      setLocalSelectedOpsi(ops);
+    }
   };
 
-  const handleKunciJawaban = () => {
-    if (!selectedOpsi || sudahKunci) return;
-    setSudahKunci(true);
-    const benar = kunci ? selectedOpsi.trim() === kunci.trim() : true;
-    if (onJawab) onJawab(selectedOpsi, benar);
-    if (autoLanjutDetik && onLanjut) {
-      setSisaAutoLanjut(autoLanjutDetik);
+  const handleKunci = () => {
+    if (!currentSelectedOpsi || currentSudahKunci) return;
+    if (onKunciJawaban) {
+      onKunciJawaban();
+    } else {
+      setLocalSudahKunci(true);
+      const benar = kunci ? currentSelectedOpsi.trim() === kunci.trim() : true;
+      if (onJawab) onJawab(currentSelectedOpsi, benar);
     }
   };
 
@@ -188,11 +193,11 @@ export const KartuSoal: React.FC<KartuSoalProps> = ({
           {/* Opsi Pilihan Jawaban */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 my-2">
             {opsi.map((ops, idx) => {
-              const isSelected = selectedOpsi === ops;
+              const isSelected = currentSelectedOpsi === ops;
               const isKunci = kunci ? ops.trim() === kunci.trim() : false;
               let styleStatus = 'bg-white hover:bg-amber-100/60 border-2 border-[#1E2149] shadow-[0_3px_0_#D4C4A8]';
 
-              if (sudahKunci) {
+              if (currentSudahKunci) {
                 if (isKunci) {
                   styleStatus = 'bg-[#22A55B] text-white border-2 border-[#1E2149] shadow-[0_3px_0_#146938]';
                 } else if (isSelected && !isKunci) {
@@ -208,7 +213,8 @@ export const KartuSoal: React.FC<KartuSoalProps> = ({
                 <button
                   key={idx}
                   type="button"
-                  disabled={sudahKunci}
+                  data-testid={`opsi-jawaban-${idx}`}
+                  disabled={currentSudahKunci}
                   onClick={() => handlePilih(ops)}
                   className={`
                     flex items-center gap-2 p-3 rounded-2xl font-bold text-sm sm:text-base text-left
@@ -221,22 +227,23 @@ export const KartuSoal: React.FC<KartuSoalProps> = ({
                   <div className="flex-1">
                     {renderTeksDenganPecahan(ops, 'sm')}
                   </div>
-                  {sudahKunci && isKunci && <Check className="w-5 h-5 text-white shrink-0" />}
-                  {sudahKunci && isSelected && !isKunci && <X className="w-5 h-5 text-white shrink-0" />}
+                  {currentSudahKunci && isKunci && <Check className="w-5 h-5 text-white shrink-0" />}
+                  {currentSudahKunci && isSelected && !isKunci && <X className="w-5 h-5 text-white shrink-0" />}
                 </button>
               );
             })}
           </div>
 
           {/* Tombol Aksi Kunci Jawaban / Pembahasan & Tombol Lanjut */}
-          {!sudahKunci ? (
+          {!currentSudahKunci ? (
             <div className="pt-2">
               <TombolChunky
                 variant="primary"
                 size="md"
                 fullWidth
-                disabled={!selectedOpsi}
-                onClick={handleKunciJawaban}
+                data-testid="tombol-kunci-jawaban"
+                disabled={!currentSelectedOpsi}
+                onClick={handleKunci}
               >
                 Kunci Jawaban
               </TombolChunky>
@@ -244,7 +251,10 @@ export const KartuSoal: React.FC<KartuSoalProps> = ({
           ) : (
             <div className="mt-2 space-y-3">
               {pembahasan && (
-                <div className="p-3 rounded-2xl bg-amber-100/70 border-2 border-[#FFB627] text-xs sm:text-sm">
+                <div
+                  data-testid="pembahasan-box"
+                  className="p-3 rounded-2xl bg-amber-100/70 border-2 border-[#FFB627] text-xs sm:text-sm"
+                >
                   <span className="font-extrabold block text-[#FF6B35] mb-1">
                     💡 Pembahasan:
                   </span>
@@ -260,15 +270,13 @@ export const KartuSoal: React.FC<KartuSoalProps> = ({
                     variant="primary"
                     size="md"
                     fullWidth
+                    data-testid="tombol-lanjut"
+                    disabled={bisaLanjut === false}
                     icon={<ArrowRight className="w-5 h-5" />}
                     iconPosition="right"
-                    onClick={() => {
-                      setSisaAutoLanjut(null);
-                      if (onLanjut) onLanjut();
-                    }}
+                    onClick={bisaLanjut === false ? undefined : onLanjut}
                   >
                     {teksLanjut || 'Lanjut ke Soal Berikutnya'}
-                    {sisaAutoLanjut !== null && sisaAutoLanjut > 0 ? ` (${sisaAutoLanjut}s)` : ''}
                   </TombolChunky>
                 </div>
               )}
