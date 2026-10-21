@@ -76,7 +76,7 @@ export const Splash: React.FC<SplashProps> = ({ onMulai }) => {
           Ketuk Untuk Mulai
         </TombolChunky>
         <p className="text-xs font-bold text-gray-600 mt-3">
-          100% Offline • Ramah Anak • Tanpa Iklan
+          Ramah Anak • Tanpa Iklan
         </p>
       </motion.div>
     </div>
