@@ -90,8 +90,8 @@ export const PanduanTeknisGuru: React.FC = () => {
 
         if (data.guru?.daftarSoal) {
           useGuruStore.setState({
-            pinGuru: data.guru.pinGuru || '1234',
-            sudahGantiPinAwal: data.guru.sudahGantiPinAwal || false,
+            pinGuru: data.guru.pinGuru || '12345',
+            sudahGantiPinAwal: data.guru.sudahGantiPinAwal !== undefined ? data.guru.sudahGantiPinAwal : true,
             daftarSoal: data.guru.daftarSoal,
             kustomNamaKios: data.guru.kustomNamaKios || {},
             kustomNamaZona: data.guru.kustomNamaZona || {}
