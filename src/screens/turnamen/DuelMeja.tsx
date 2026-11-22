@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useKelasStore } from '../../store/kelasStore';
-import { SEMUA_SOAL, Soal, acakOpsi } from '../../engine/kartu';
+import { Soal, acakOpsi, ambilSoalTurnamen } from '../../engine/kartu';
+import { useGuruStore } from '../../store/guruStore';
 import { encodeKodeHasilMeja, konversiPoinTurnamen, HasilMejaRingkas } from '../../engine/turnamen';
 import { KartuSoal } from '../../components/KartuSoal';
 import { TombolChunky } from '../../components/TombolChunky';
@@ -34,11 +35,12 @@ export const DuelMeja: React.FC<DuelMejaProps> = ({
   const anggota = daftarSiswa.filter((s) => meja.anggotaIds.includes(s.id));
 
   // Ambil 5 butir soal turnamen sesuai paket (A, B, atau C)
+  // Bank soal dari Panel Guru (fallback ke soal bawaan bila paket kosong)
+  const daftarSoalGuru = useGuruStore((s) => s.daftarSoal);
   const bankSoalPaket = useMemo(() => {
-    return SEMUA_SOAL.filter(
-      (s) => s.tipe === 'turnamen' && s.paket === meja.paketSoal
-    ).slice(0, 5);
-  }, [meja.paketSoal]);
+    return ambilSoalTurnamen(meja.paketSoal);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [meja.paketSoal, daftarSoalGuru]);
 
   const [nomorSoal, setNomorSoal] = useState(0); // 0 - 4
   const [giliranPemainIndex, setGiliranPemainIndex] = useState(0);
@@ -139,8 +141,8 @@ export const DuelMeja: React.FC<DuelMejaProps> = ({
   const selesaikanSesiDuel = () => {
     const skorList = anggota.map((s) => ({
       siswaId: s.id,
-      poinMonopoli: poinMonopoli[s.id] || 40, // default poin monopoli jika tidak diubah
-      poinDuel: skorDuel[s.id] || 0
+      poinMonopoli: poinMonopoli[s.id] ?? 40, // default poin monopoli jika tidak diubah
+      poinDuel: skorDuel[s.id] ?? 0
     }));
 
     simpanSkorMeja(meja.id, skorList);
@@ -195,8 +197,8 @@ export const DuelMeja: React.FC<DuelMejaProps> = ({
           </span>
           {anggota.map((s) => {
             const tim = daftarTim.find((t) => t.anggotaIds.includes(s.id));
-            const pMono = poinMonopoli[s.id] || 40;
-            const pDuel = skorDuel[s.id] || 0;
+            const pMono = poinMonopoli[s.id] ?? 40;
+            const pDuel = skorDuel[s.id] ?? 0;
             const total = pMono + pDuel;
 
             return (

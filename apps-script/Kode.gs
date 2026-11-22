@@ -104,6 +104,21 @@ function siapkanSheet() {
 /**
  * Handle GET Request (Tes Koneksi & Ambil Data)
  */
+/**
+ * Teks dari aplikasi ditulis apa adanya: awalan = + - @ diberi tanda kutip agar
+ * tidak dijalankan sebagai formula Spreadsheet (formula injection).
+ */
+function teksAman(nilai) {
+  if (typeof nilai === "number") return nilai; // angka tetap angka
+  const t = String(nilai === undefined || nilai === null ? "" : nilai);
+  return /^[=+\-@]/.test(t) ? "'" + t : t;
+}
+
+function tokenValid(token) {
+  const validTokens = [TOKEN_RAHASIA, "monepeca123", "monopeca123"];
+  return typeof token === "string" && validTokens.indexOf(token) !== -1;
+}
+
 function doGet(e) {
   try {
     const action = e && e.parameter ? (e.parameter.action || e.parameter.aksi || "ping") : "ping";
@@ -117,6 +132,10 @@ function doGet(e) {
     }
 
     if (action === "getSiswa" || action === "ambilSiswa") {
+      // Daftar nama siswa adalah data pribadi: wajib token yang valid
+      if (!tokenValid(e.parameter.token)) {
+        return kirimResponse({ status: "error", pesan: "Token otentikasi tidak valid." });
+      }
       const ss = getSpreadsheet();
       const sheet = ss.getSheetByName("Daftar Siswa");
       if (!sheet) {
@@ -156,9 +175,9 @@ function doPost(e) {
       payload = {};
     }
 
-    // Verifikasi Token (opsional bila token disertakan di frontend)
-    const validTokens = ["monepeca123", "monopeca123"];
-    if (payload.token && !validTokens.includes(payload.token)) {
+    // Verifikasi Token: wajib untuk semua penulisan data (sebelumnya permintaan
+    // tanpa token tetap diterima sehingga siapa pun bisa menimpa data)
+    if (!tokenValid(payload.token)) {
       return kirimResponse({ status: "error", pesan: "Token otentikasi tidak valid." });
     }
 
@@ -181,15 +200,15 @@ function doPost(e) {
       for (let i = 0; i < listData.length; i++) {
         const item = listData[i];
         barisBaru.push([
-          item.waktu || formattedTime,
-          item.nama || "-",
-          item.tim || "-",
-          item.meja || "-",
+          teksAman(item.waktu || formattedTime),
+          teksAman(item.nama || "-"),
+          teksAman(item.tim || "-"),
+          teksAman(item.meja || "-"),
           Number(item.poinMonopoli || 0),
           Number(item.poinDuel || 0),
           Number(item.totalPoinSiswa || 0),
           Number(item.poinTurnamen || 0),
-          item.peringkatMeja || "-"
+          teksAman(item.peringkatMeja || "-")
         ]);
       }
 
@@ -225,9 +244,9 @@ function doPost(e) {
       for (let i = 0; i < listSiswa.length; i++) {
         const s = listSiswa[i];
         barisSiswa.push([
-          s.id || Utilities.getUuid(),
-          s.nama || "Siswa",
-          s.kemampuan || "sedang",
+          teksAman(s.id || Utilities.getUuid()),
+          teksAman(s.nama || "Siswa"),
+          teksAman(s.kemampuan || "sedang"),
           formattedTime
         ]);
       }

@@ -96,6 +96,16 @@ export const DaftarSiswa: React.FC<DaftarSiswaProps> = ({ onLanjut }) => {
     try {
       const res = await tarikSiswaDariSheets();
       if (res.sukses && res.data && res.data.length > 0) {
+        // Menarik data menimpa seluruh daftar siswa di perangkat ini — minta konfirmasi dulu
+        if (
+          daftarSiswa.length > 0 &&
+          !window.confirm(
+            `Ganti ${daftarSiswa.length} siswa di perangkat ini dengan ${res.data.length} siswa dari Spreadsheet? Tim & meja perlu dibagi ulang setelahnya.`
+          )
+        ) {
+          setPesanSheets({ tipe: 'error', pesan: 'Penarikan data dibatalkan. Daftar siswa tidak berubah.' });
+          return;
+        }
         setDaftarSiswa(res.data);
         setPesanSheets({
           tipe: 'success',

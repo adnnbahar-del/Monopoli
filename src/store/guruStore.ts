@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import soalData from '../data/soal.json';
-import { Soal } from '../engine/kartu';
+import { Soal, setSumberSoal } from '../engine/kartu';
 
 export interface GuruState {
   pinGuru: string; // default "1234"
@@ -37,12 +37,14 @@ export const useGuruStore = create<GuruState>()(
       kustomNamaZona: {},
 
       verifikasiPin: (inputPin) => {
+        // Hanya PIN yang tersimpan yang diterima (PIN bawaan 12345 tidak lagi berlaku
+        // setelah guru menggantinya).
         const pin = inputPin.trim();
-        return pin === get().pinGuru || pin === '12345';
+        return pin.length > 0 && pin === get().pinGuru;
       },
 
       gantiPin: (pinLama, pinBaru) => {
-        if (pinLama.trim() !== get().pinGuru && pinLama.trim() !== '12345') {
+        if (pinLama.trim() !== get().pinGuru) {
           return { sukses: false, pesan: 'PIN lama salah!' };
         }
         if (pinBaru.trim().length < 4) {
@@ -169,3 +171,6 @@ export const useGuruStore = create<GuruState>()(
     }
   )
 );
+
+// Bank soal Panel Guru menjadi sumber soal permainan papan & duel turnamen
+setSumberSoal(() => useGuruStore.getState().daftarSoal);

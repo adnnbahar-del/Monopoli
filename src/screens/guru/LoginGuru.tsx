@@ -14,6 +14,8 @@ export const LoginGuru: React.FC<LoginGuruProps> = ({
   onKembali
 }) => {
   const { verifikasiPin } = useGuruStore();
+  // Petunjuk PIN bawaan hanya ditampilkan selama PIN belum diganti
+  const pinMasihBawaan = useGuruStore((st) => st.pinGuru === '12345');
   const [inputPin, setInputPin] = useState('');
   const [pesanError, setPesanError] = useState<string | null>(null);
 
@@ -26,11 +28,12 @@ export const LoginGuru: React.FC<LoginGuruProps> = ({
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (verifikasiPin(inputPin) || inputPin.trim() === '12345') {
+    if (verifikasiPin(inputPin)) {
       setPesanError(null);
       onLoginBerhasil();
     } else {
-      setPesanError('PIN salah! Silakan coba lagi (PIN bawaan: 12345).');
+      // Petunjuk PIN bawaan hanya ditampilkan selama guru belum menggantinya
+      setPesanError(pinMasihBawaan ? 'PIN salah! Silakan coba lagi (PIN bawaan: 12345).' : 'PIN salah! Silakan coba lagi.');
     }
   };
 
@@ -60,15 +63,17 @@ export const LoginGuru: React.FC<LoginGuruProps> = ({
               <label className="text-xs font-display font-extrabold text-[#1E2149]">
                 PIN Guru:
               </label>
-              <span className="text-[11px] font-bold text-gray-600 bg-amber-100/90 px-2 py-0.5 rounded-full border border-amber-300">
-                PIN: 12345
-              </span>
+              {pinMasihBawaan && (
+                <span className="text-[11px] font-bold text-gray-600 bg-amber-100/90 px-2 py-0.5 rounded-full border border-amber-300">
+                  PIN bawaan: 12345
+                </span>
+              )}
             </div>
             <div className="relative">
               <input
                 type="password"
                 maxLength={10}
-                placeholder="Masukkan PIN (12345)..."
+                placeholder={pinMasihBawaan ? 'Masukkan PIN (12345)...' : 'Masukkan PIN guru...'}
                 value={inputPin}
                 onChange={(e) => {
                   setInputPin(e.target.value);

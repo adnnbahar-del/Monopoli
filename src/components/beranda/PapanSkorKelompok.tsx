@@ -1,6 +1,8 @@
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useKelasStore } from '../../store/kelasStore';
+import { usePengaturanStore } from '../../store/pengaturanStore';
+import { hitungPenghargaanTim } from '../../engine/turnamen';
 import { IlustrasiPiala } from './Ilustrasi';
 
 /** Gaya baris peringkat: emas, perak, perunggu, ungu */
@@ -16,27 +18,37 @@ export interface PapanSkorKelompokProps {
 }
 
 /**
- * Papan skor 4 kelompok teratas, dihitung dari jumlah poin turnamen anggota tim
- * yang tersimpan di kelasStore. Bila belum ada turnamen, semua skor 0.
+ * Papan skor 4 kelompok teratas — memakai rumus yang sama dengan Podium TGT:
+ * rata-rata poin turnamen anggota tim (hitungPenghargaanTim), sehingga peringkat
+ * di Beranda selalu sama dengan peringkat resmi. Bila belum ada turnamen, semua 0.
  */
 export const PapanSkorKelompok: React.FC<PapanSkorKelompokProps> = ({ onBuka }) => {
   const daftarTim = useKelasStore((s) => s.daftarTim);
   const skorTurnamen = useKelasStore((s) => s.skorTurnamen);
+  const ambangSuper = usePengaturanStore((s) => s.ambangSuperTeam);
+  const ambangGreat = usePengaturanStore((s) => s.ambangGreatTeam);
+  const ambangGood = usePengaturanStore((s) => s.ambangGoodTeam);
 
   const peringkat = useMemo(() => {
-    const skorList = Object.values(skorTurnamen);
+    const skorList = Object.values(skorTurnamen).map((s) => ({
+      siswaId: s.siswaId,
+      poinTurnamen: s.poinTurnamen || 0,
+    }));
     return daftarTim
-      .map((tim) => ({
-        id: tim.id,
-        nama: tim.nama,
-        warna: tim.warna,
-        skor: skorList
-          .filter((s) => s.timId === tim.id)
-          .reduce((sum, s) => sum + (s.poinTurnamen || 0), 0),
-      }))
+      .map((tim) => {
+        const hasil = hitungPenghargaanTim(tim, skorList, ambangSuper, ambangGreat, ambangGood);
+        const sudahBermain = skorList.some((s) => tim.anggotaIds.includes(s.siswaId));
+        return {
+          id: tim.id,
+          nama: tim.nama,
+          warna: tim.warna,
+          skor: hasil.rataRataPoin,
+          predikat: sudahBermain ? hasil.predikat : null,
+        };
+      })
       .sort((a, b) => b.skor - a.skor)
       .slice(0, 4);
-  }, [daftarTim, skorTurnamen]);
+  }, [daftarTim, skorTurnamen, ambangSuper, ambangGreat, ambangGood]);
 
   const belumAdaSkor = peringkat.every((t) => t.skor === 0);
 
@@ -76,11 +88,18 @@ export const PapanSkorKelompok: React.FC<PapanSkorKelompokProps> = ({ onBuka }) 
                       {i + 1}
                     </span>
                     <span className="w-2.5 h-2.5 rounded-full border-2 border-[#1E2149] shrink-0" style={{ background: tim.warna }} />
-                    <span className="flex-1 min-w-0 truncate font-display font-black text-sm text-[#1E2149]">
-                      {tim.nama}
+                    <span className="flex-1 min-w-0">
+                      <span className="block truncate font-display font-black text-sm text-[#1E2149] leading-tight">
+                        {tim.nama}
+                      </span>
+                      {tim.predikat && (
+                        <span className="block truncate text-[10px] font-bold text-[#1E2149]/70 leading-tight">
+                          {tim.predikat}
+                        </span>
+                      )}
                     </span>
                     <span className="min-w-[56px] text-center px-2 py-0.5 rounded-full bg-white border-2 border-[#1E2149] font-display font-black text-base text-[#1E2149] tabular-nums">
-                      {tim.skor}
+                      {Number.isInteger(tim.skor) ? tim.skor : tim.skor.toFixed(1)}
                     </span>
                   </motion.li>
                 );
@@ -88,11 +107,11 @@ export const PapanSkorKelompok: React.FC<PapanSkorKelompokProps> = ({ onBuka }) 
             </ol>
           )}
 
-          {belumAdaSkor && peringkat.length > 0 && (
-            <p className="mt-2.5 text-center text-[11px] font-bold text-white/75">
-              Skor terisi setelah turnamen dimainkan.
-            </p>
-          )}
+          <p className="mt-2.5 text-center text-[11px] font-bold text-white/75">
+            {belumAdaSkor && peringkat.length > 0
+              ? 'Skor terisi setelah turnamen dimainkan.'
+              : 'Rata-rata poin turnamen per anggota tim'}
+          </p>
         </div>
       </button>
     </div>

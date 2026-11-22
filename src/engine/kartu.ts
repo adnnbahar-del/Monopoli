@@ -27,6 +27,46 @@ export interface Soal {
 export const SEMUA_SOAL: Soal[] = (soalData.soal as unknown) as Soal[];
 
 /**
+ * Sumber bank soal aktif. Bawaan: soal.json. Panel Guru mendaftarkan bank soalnya
+ * (lihat guruStore) agar soal yang ditambah/diubah/dihapus guru benar-benar dipakai.
+ */
+let sumberSoal: () => Soal[] = () => SEMUA_SOAL;
+
+export function setSumberSoal(fn: () => Soal[]): void {
+  sumberSoal = fn;
+}
+
+function soalValid(s: Soal | undefined | null): s is Soal {
+  return !!s && typeof s.id === 'string' && typeof s.pertanyaan === 'string' &&
+    Array.isArray(s.opsi) && s.opsi.length >= 2 && typeof s.kunci === 'string';
+}
+
+/** Bank soal aktif (soal tidak lengkap diabaikan). */
+export function bankSoalAktif(): Soal[] {
+  try {
+    const bank = sumberSoal();
+    if (Array.isArray(bank)) {
+      const valid = bank.filter(soalValid);
+      if (valid.length > 0) return valid;
+    }
+  } catch {
+    /* fallback ke bawaan */
+  }
+  return SEMUA_SOAL;
+}
+
+/** Saring bank aktif; bila hasilnya kosong (mis. guru menghapus semua soal kategori ini), pakai soal bawaan. */
+function saringBank(filter: (s: Soal) => boolean): Soal[] {
+  const dariAktif = bankSoalAktif().filter(filter);
+  return dariAktif.length > 0 ? dariAktif : SEMUA_SOAL.filter(filter);
+}
+
+/** Soal turnamen untuk paket A/B/C (maks. 5 butir). */
+export function ambilSoalTurnamen(paket: 'A' | 'B' | 'C', jumlah = 5): Soal[] {
+  return saringBank((s) => s.tipe === 'turnamen' && s.paket === paket).slice(0, jumlah);
+}
+
+/**
  * Mengacak opsi jawaban menggunakan Fisher-Yates shuffle.
  */
 export function acakOpsi<T>(array: T[]): T[] {
@@ -63,7 +103,7 @@ export function ambilSoalPetak(
   soalTerpakaiIds: string[],
   levelTarget?: Level
 ): { soal: Soal; opsiAcak: string[] } {
-  const bankSubtopik = SEMUA_SOAL.filter(
+  const bankSubtopik = saringBank(
     (s) => s.tipe === 'petak' && s.subtopik === subtopik
   );
 
@@ -98,7 +138,7 @@ export function ambilSoalPetak(
 export function ambilSoalTantangan(
   soalTerpakaiIds: string[]
 ): { soal: Soal; opsiAcak: string[] } {
-  const bankTantangan = SEMUA_SOAL.filter((s) => s.tipe === 'tantangan');
+  const bankTantangan = saringBank((s) => s.tipe === 'tantangan');
   let kandidat = bankTantangan.filter((s) => !soalTerpakaiIds.includes(s.id));
   if (kandidat.length === 0) kandidat = bankTantangan;
 

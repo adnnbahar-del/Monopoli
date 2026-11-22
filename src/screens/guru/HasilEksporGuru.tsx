@@ -60,10 +60,12 @@ export const HasilEksporGuru: React.FC = () => {
   // Handler Ekspor CSV Lokal
   const handleEksporCSV = () => {
     const headers = ['Nama Siswa', 'Tim', 'Meja', 'Poin Monopoli', 'Poin Duel', 'Total Poin', 'Poin Turnamen', 'Peringkat Meja'];
+    // Kutip & escape setiap sel teks (nama bisa berisi koma atau tanda kutip)
+    const sel = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
     const baris = susunBarisSiswa().map((b) => [
-      `"${b.nama}"`,
-      `"${b.tim}"`,
-      `"${b.meja}"`,
+      sel(b.nama),
+      sel(b.tim),
+      sel(b.meja),
       b.poinMonopoli,
       b.poinDuel,
       b.totalPoinSiswa,
@@ -71,8 +73,11 @@ export const HasilEksporGuru: React.FC = () => {
       b.peringkatMeja
     ].join(','));
 
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...baris].join('\n');
-    const encodedUri = encodeURI(csvContent);
+    // Blob + BOM UTF-8: aman untuk karakter seperti '#' (sebelumnya memotong file pada data: URI)
+    // dan terbaca benar di Excel
+    const csvText = '﻿' + [headers.join(','), ...baris].join('\r\n');
+    const encodedUri = URL.createObjectURL(new Blob([csvText], { type: 'text/csv;charset=utf-8' }));
+    setTimeout(() => URL.revokeObjectURL(encodedUri), 10000);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
     link.setAttribute('download', `rekap_nilai_monepeca_${Date.now()}.csv`);

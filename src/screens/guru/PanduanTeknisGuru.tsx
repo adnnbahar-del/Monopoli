@@ -88,29 +88,66 @@ export const PanduanTeknisGuru: React.FC = () => {
         const text = event.target?.result as string;
         const data = JSON.parse(text);
 
-        if (data.guru?.daftarSoal) {
+        const adaGuru = data?.guru && Array.isArray(data.guru.daftarSoal);
+        const adaKelas = data?.kelas && Array.isArray(data.kelas.daftarSiswa);
+        const adaPengaturan = data?.pengaturan && typeof data.pengaturan === 'object';
+        if (!adaGuru && !adaKelas && !adaPengaturan) {
+          alert('File ini bukan backup MONOPECA yang valid. Tidak ada data yang diubah.');
+          return;
+        }
+
+        // Pulihkan menimpa data di perangkat ini — konfirmasi dulu
+        const bagian = [adaGuru && 'bank soal & materi guru', adaKelas && 'data kelas & skor turnamen', adaPengaturan && 'pengaturan']
+          .filter(Boolean)
+          .join(', ');
+        if (!window.confirm(`Pulihkan ${bagian} dari file ini? Data yang ada di perangkat ini akan ditimpa.`)) return;
+
+        if (adaGuru) {
           useGuruStore.setState({
-            pinGuru: data.guru.pinGuru || '12345',
-            sudahGantiPinAwal: data.guru.sudahGantiPinAwal !== undefined ? data.guru.sudahGantiPinAwal : true,
+            pinGuru: typeof data.guru.pinGuru === 'string' && data.guru.pinGuru.trim().length >= 4 ? data.guru.pinGuru.trim() : useGuruStore.getState().pinGuru,
+            sudahGantiPinAwal: data.guru.sudahGantiPinAwal !== undefined ? Boolean(data.guru.sudahGantiPinAwal) : true,
             daftarSoal: data.guru.daftarSoal,
-            kustomNamaKios: data.guru.kustomNamaKios || {},
-            kustomNamaZona: data.guru.kustomNamaZona || {}
+            kustomNamaKios: data.guru.kustomNamaKios && typeof data.guru.kustomNamaKios === 'object' ? data.guru.kustomNamaKios : {},
+            kustomNamaZona: data.guru.kustomNamaZona && typeof data.guru.kustomNamaZona === 'object' ? data.guru.kustomNamaZona : {}
           });
         }
 
-        if (data.kelas?.daftarSiswa) {
+        if (adaKelas) {
           useKelasStore.setState({
             daftarSiswa: data.kelas.daftarSiswa,
-            daftarTim: data.kelas.daftarTim || [],
-            daftarMeja: data.kelas.daftarMeja || [],
-            skorTurnamen: data.kelas.skorTurnamen || {}
+            daftarTim: Array.isArray(data.kelas.daftarTim) ? data.kelas.daftarTim : [],
+            daftarMeja: Array.isArray(data.kelas.daftarMeja) ? data.kelas.daftarMeja : [],
+            skorTurnamen: data.kelas.skorTurnamen && typeof data.kelas.skorTurnamen === 'object' ? data.kelas.skorTurnamen : {}
           });
+        }
+
+        // Pengaturan ikut dipulihkan (sebelumnya tersimpan di backup tetapi diabaikan)
+        if (adaPengaturan) {
+          const p = data.pengaturan;
+          const angka = (v: unknown, min: number, max: number) =>
+            typeof v === 'number' && Number.isFinite(v) ? Math.min(max, Math.max(min, v)) : undefined;
+          const pulih: Record<string, unknown> = {
+            volumeMusik: angka(p.volumeMusik, 0, 100),
+            volumeSFX: angka(p.volumeSFX, 0, 100),
+            durasiSesiMenit: angka(p.durasiSesiMenit, 1, 180),
+            ukuranTeks: p.ukuranTeks === 'besar' || p.ukuranTeks === 'normal' ? p.ukuranTeks : undefined,
+            kontrasTinggi: typeof p.kontrasTinggi === 'boolean' ? p.kontrasTinggi : undefined,
+            ambangSuperTeam: angka(p.ambangSuperTeam, 0, 60),
+            ambangGreatTeam: angka(p.ambangGreatTeam, 0, 60),
+            ambangGoodTeam: angka(p.ambangGoodTeam, 0, 60)
+          };
+          usePengaturanStore.setState(
+            Object.fromEntries(Object.entries(pulih).filter(([, v]) => v !== undefined))
+          );
         }
 
         alert('Data aplikasi berhasil dipulihkan (Restore Sukses)!');
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : 'File tidak valid';
         alert(`Gagal memulihkan data: ${msg}`);
+      } finally {
+        // Reset input agar file yang sama bisa dipilih lagi
+        e.target.value = '';
       }
     };
     reader.readAsText(file);

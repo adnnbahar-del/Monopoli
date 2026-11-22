@@ -43,6 +43,13 @@ export const Pengaturan: React.FC<PengaturanProps> = ({
     resetPengaturan
   } = usePengaturanStore();
 
+  /** Angka ambang 0–60 (poin turnamen maks. 60). Kolom kosong/tidak valid diabaikan, tidak di-reset paksa. */
+  const nilaiAmbang = (teks: string): number | null => {
+    const v = parseInt(teks, 10);
+    if (Number.isNaN(v)) return null;
+    return Math.min(60, Math.max(0, v));
+  };
+
   return (
     <div className="min-h-screen pb-16 bg-gradient-to-br from-[#FFE3B3] to-[#FFB8A1] tapis-pattern select-none">
       <NavHeader
@@ -129,6 +136,7 @@ export const Pengaturan: React.FC<PengaturanProps> = ({
           <div className="space-y-2">
             <span className="text-sm font-bold text-gray-800 block">
               Durasi Sesi Permainan Monopoli:
+              <span className="block text-[11px] font-bold text-gray-500">Berlaku saat memulai permainan baru.</span>
             </span>
             <div className="grid grid-cols-4 gap-2">
               {[15, 20, 25, 30].map((durasi) => (
@@ -225,6 +233,11 @@ export const Pengaturan: React.FC<PengaturanProps> = ({
             Rata-rata poin anggota tim untuk mencapai predikat penghargaan turnamen (dapat disesuaikan oleh guru):
           </p>
 
+          {!(ambangSuperTeam > ambangGreatTeam && ambangGreatTeam > ambangGoodTeam) && (
+            <p role="alert" className="p-2.5 rounded-xl bg-red-50 border-2 border-[#E5484D] text-xs font-bold text-[#E5484D]">
+              Urutan ambang tidak tepat: Super Team harus lebih besar dari Great Team, dan Great Team lebih besar dari Good Team.
+            </p>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="p-3 bg-amber-50 rounded-2xl border-2 border-[#FFD23F] text-center">
               <span className="text-xs font-display font-black text-amber-700 uppercase block">
@@ -235,7 +248,7 @@ export const Pengaturan: React.FC<PengaturanProps> = ({
                 <input
                   type="number"
                   value={ambangSuperTeam}
-                  onChange={(e) => setAmbangTim(parseInt(e.target.value) || 50, ambangGreatTeam, ambangGoodTeam)}
+                  onChange={(e) => { const v = nilaiAmbang(e.target.value); if (v !== null) setAmbangTim(v, ambangGreatTeam, ambangGoodTeam); }}
                   className="w-16 px-2 py-1 text-center font-display font-black text-lg border-2 border-[#1E2149] rounded-xl bg-white"
                 />
               </div>
@@ -250,7 +263,7 @@ export const Pengaturan: React.FC<PengaturanProps> = ({
                 <input
                   type="number"
                   value={ambangGreatTeam}
-                  onChange={(e) => setAmbangTim(ambangSuperTeam, parseInt(e.target.value) || 45, ambangGoodTeam)}
+                  onChange={(e) => { const v = nilaiAmbang(e.target.value); if (v !== null) setAmbangTim(ambangSuperTeam, v, ambangGoodTeam); }}
                   className="w-16 px-2 py-1 text-center font-display font-black text-lg border-2 border-[#1E2149] rounded-xl bg-white"
                 />
               </div>
@@ -265,7 +278,7 @@ export const Pengaturan: React.FC<PengaturanProps> = ({
                 <input
                   type="number"
                   value={ambangGoodTeam}
-                  onChange={(e) => setAmbangTim(ambangSuperTeam, ambangGreatTeam, parseInt(e.target.value) || 40)}
+                  onChange={(e) => { const v = nilaiAmbang(e.target.value); if (v !== null) setAmbangTim(ambangSuperTeam, ambangGreatTeam, v); }}
                   className="w-16 px-2 py-1 text-center font-display font-black text-lg border-2 border-[#1E2149] rounded-xl bg-white"
                 />
               </div>

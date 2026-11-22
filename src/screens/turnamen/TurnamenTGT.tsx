@@ -42,6 +42,9 @@ export const TurnamenTGT: React.FC<TurnamenTGTProps> = ({
     } else {
       setSesiAktif(id);
       if (id === 'penghargaan') setSubTahap('podium');
+      // Kembali dari Podium ke daftar meja agar meja lain tetap bisa dimainkan
+      // (sebelumnya subTahap tetap 'podium' sehingga layar meja tidak bisa dibuka lagi)
+      else if (id === 'turnamen' && subTahap === 'podium') setSubTahap('meja');
     }
   };
 

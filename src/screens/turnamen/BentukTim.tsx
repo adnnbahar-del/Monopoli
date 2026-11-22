@@ -15,6 +15,9 @@ export const BentukTim: React.FC<BentukTimProps> = ({ onKembali, onLanjut }) => 
   const [editingTimId, setEditingTimId] = useState<string | null>(null);
   const [namaTimInput, setNamaTimInput] = useState('');
 
+  // Siswa yang ditambahkan setelah tim dibentuk belum masuk tim mana pun
+  const siswaTanpaTim = daftarSiswa.filter((s) => !daftarTim.some((t) => t.anggotaIds.includes(s.id)));
+
   const handleSimpanNama = (timId: string) => {
     if (namaTimInput.trim()) {
       ubahNamaTim(timId, namaTimInput);
@@ -47,6 +50,18 @@ export const BentukTim: React.FC<BentukTimProps> = ({ onKembali, onLanjut }) => 
           Bagi Otomatis (Pola Ular)
         </TombolChunky>
       </div>
+
+      {siswaTanpaTim.length > 0 && (
+        <div role="alert" className="p-4 rounded-2xl bg-amber-100 border-[3px] border-[#FFB627] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <p className="text-sm font-bold text-amber-900">
+            {siswaTanpaTim.length} siswa belum masuk tim mana pun: {siswaTanpaTim.map((s) => s.nama).join(', ')}.
+            Bagi ulang tim agar mereka bisa ikut turnamen.
+          </p>
+          <TombolChunky variant="accent" size="sm" icon={<Shuffle className="w-4 h-4" />} onClick={() => bentukTimOtomatis(4)}>
+            Bagi Ulang Tim
+          </TombolChunky>
+        </div>
+      )}
 
       {/* Grid Tim Turnamen */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">

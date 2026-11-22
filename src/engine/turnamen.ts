@@ -148,6 +148,12 @@ export function bagiMejaTurnamen(
   const totalMeja = Math.ceil(terurut.length / ukuranMeja);
   const paketList: ('A' | 'B' | 'C')[] = ['A', 'B', 'C'];
 
+  // Kapasitas tiap meja dibuat seimbang (mis. 13 siswa → 4/3/3/3, bukan 4/4/4/1)
+  // agar tidak ada meja turnamen yang hanya berisi 1 siswa.
+  const dasar = Math.floor(terurut.length / totalMeja);
+  const sisa = terurut.length % totalMeja;
+  const kapasitas = Array.from({ length: totalMeja }, (_, m) => dasar + (m < sisa ? 1 : 0));
+
   const mejaHasil: MejaTurnamen[] = [];
   for (let m = 0; m < totalMeja; m++) {
     mejaHasil.push({
@@ -166,8 +172,8 @@ export function bagiMejaTurnamen(
     let ditempatkan = false;
 
     // Cari meja yang belum penuh dan belum memiliki anggota dari tim yang sama
-    for (const meja of mejaHasil) {
-      if (meja.anggotaIds.length < ukuranMeja) {
+    for (const [m, meja] of mejaHasil.entries()) {
+      if (meja.anggotaIds.length < kapasitas[m]) {
         const adaBentrok = meja.anggotaIds.some(
           (idSudah) => siswaTimMap.get(idSudah) === timSiswa
         );
@@ -179,18 +185,70 @@ export function bagiMejaTurnamen(
       }
     }
 
-    // Jika semua meja bentrok atau penuh, masukkan ke meja yang paling sedikit anggotanya
+    // Jika semua meja bentrok atau penuh, masukkan ke meja yang masih punya tempat
+    // (paling sedikit anggotanya), agar kapasitas seimbang tetap terjaga
     if (!ditempatkan) {
-      const mejaTersedia = [...mejaHasil].sort(
-        (a, b) => a.anggotaIds.length - b.anggotaIds.length
-      )[0];
+      const mejaTersedia =
+        mejaHasil
+          .map((meja, m) => ({ meja, m }))
+          .filter(({ meja, m }) => meja.anggotaIds.length < kapasitas[m])
+          .sort((a, b) => a.meja.anggotaIds.length - b.meja.anggotaIds.length)[0]?.meja ??
+        [...mejaHasil].sort((a, b) => a.anggotaIds.length - b.anggotaIds.length)[0];
       if (mejaTersedia) {
         mejaTersedia.anggotaIds.push(siswa.id);
       }
     }
   }
 
+  perbaikiBentrokMeja(mejaHasil, siswaTimMap);
   return mejaHasil;
+}
+
+/**
+ * Penempatan berurutan bisa menyisakan meja berisi dua anggota tim yang sama
+ * padahal susunan tanpa bentrok masih mungkin. Tukar siswa yang bentrok dengan
+ * siswa di meja lain (meja terdekat lebih dulu agar kemampuan tetap setara),
+ * selama penukaran tidak menimbulkan bentrok baru.
+ */
+function perbaikiBentrokMeja(mejaList: MejaTurnamen[], siswaTimMap: Map<string, string>) {
+  const timDari = (id: string) => siswaTimMap.get(id);
+  const adaTim = (meja: MejaTurnamen, tim: string | undefined, kecuali: string) =>
+    tim !== undefined && meja.anggotaIds.some((id) => id !== kecuali && timDari(id) === tim);
+
+  for (let putaran = 0; putaran < mejaList.length * 4; putaran++) {
+    let adaPerubahan = false;
+
+    for (let a = 0; a < mejaList.length; a++) {
+      const mejaA = mejaList[a];
+      // Cari anggota yang timnya sudah ada di meja ini
+      const bentrok = mejaA.anggotaIds.find((id, idx) =>
+        mejaA.anggotaIds.findIndex((lain) => timDari(lain) === timDari(id)) !== idx
+      );
+      if (!bentrok) continue;
+      const timBentrok = timDari(bentrok);
+
+      // Meja lain diurutkan dari yang terdekat
+      const urutan = mejaList
+        .map((_, i) => i)
+        .filter((i) => i !== a)
+        .sort((x, y) => Math.abs(x - a) - Math.abs(y - a));
+
+      tukar: for (const b of urutan) {
+        const mejaB = mejaList[b];
+        if (adaTim(mejaB, timBentrok, '')) continue; // meja B sudah punya tim yang sama
+        for (const calon of mejaB.anggotaIds) {
+          // calon pindah ke meja A tanpa bentrok (selain dengan siswa yang ditukar)
+          if (adaTim(mejaA, timDari(calon), bentrok)) continue;
+          mejaA.anggotaIds = mejaA.anggotaIds.map((id) => (id === bentrok ? calon : id));
+          mejaB.anggotaIds = mejaB.anggotaIds.map((id) => (id === calon ? bentrok : id));
+          adaPerubahan = true;
+          break tukar;
+        }
+      }
+    }
+
+    if (!adaPerubahan) break;
+  }
 }
 
 /**

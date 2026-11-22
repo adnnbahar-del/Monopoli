@@ -16,6 +16,14 @@ export const BentukMeja: React.FC<BentukMejaProps> = ({
 }) => {
   const { daftarSiswa, daftarTim, daftarMeja, bentukMejaOtomatis } = useKelasStore();
 
+  // Meja bisa usang bila siswa/tim diubah setelah meja disusun
+  const siswaTanpaMeja = daftarSiswa.filter((s) => !daftarMeja.some((m) => m.anggotaIds.includes(s.id)));
+  const timDari = (siswaId: string) => daftarTim.find((t) => t.anggotaIds.includes(siswaId))?.id;
+  const mejaBentrok = daftarMeja.filter((m) => {
+    const tim = m.anggotaIds.map(timDari).filter(Boolean);
+    return new Set(tim).size !== tim.length;
+  });
+
   return (
     <div className="space-y-6">
       {/* Header Kontrol Meja Turnamen */}
@@ -41,6 +49,19 @@ export const BentukMeja: React.FC<BentukMejaProps> = ({
           Susun Ulang Meja
         </TombolChunky>
       </div>
+
+      {(siswaTanpaMeja.length > 0 || mejaBentrok.length > 0) && (
+        <div role="alert" className="p-4 rounded-2xl bg-amber-100 border-[3px] border-[#FFB627] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <p className="text-sm font-bold text-amber-900">
+            {siswaTanpaMeja.length > 0 && <>{siswaTanpaMeja.length} siswa belum punya meja: {siswaTanpaMeja.map((s) => s.nama).join(', ')}. </>}
+            {mejaBentrok.length > 0 && <>{mejaBentrok.map((m) => m.nama).join(', ')} berisi dua anggota dari tim yang sama. </>}
+            Susun ulang meja sebelum duel dimulai.
+          </p>
+          <TombolChunky variant="accent" size="sm" icon={<RotateCw className="w-4 h-4" />} onClick={() => bentukMejaOtomatis(4)}>
+            Susun Ulang Meja
+          </TombolChunky>
+        </div>
+      )}
 
       {/* Grid Meja-Meja Turnamen */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">

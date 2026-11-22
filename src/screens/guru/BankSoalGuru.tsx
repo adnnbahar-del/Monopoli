@@ -41,6 +41,8 @@ export const BankSoalGuru: React.FC = () => {
   // Form State
   const [formId, setFormId] = useState('');
   const [formTipe, setFormTipe] = useState<'petak' | 'tantangan' | 'turnamen'>('petak');
+  // Paket soal duel (wajib untuk tipe turnamen; tanpa paket soal tidak pernah terpilih di duel)
+  const [formPaket, setFormPaket] = useState<'A' | 'B' | 'C'>('A');
   const [formSubtopik, setFormSubtopik] = useState<Subtopik>('mengenal');
   const [formLevel, setFormLevel] = useState<Level>('sedang');
   const [formTP, setFormTP] = useState('TP1');
@@ -75,6 +77,7 @@ export const BankSoalGuru: React.FC = () => {
     setIsEditing(false);
     setFormId(`soal-${Date.now()}`);
     setFormTipe('petak');
+    setFormPaket('A');
     setFormSubtopik('mengenal');
     setFormLevel('sedang');
     setFormTP('TP1');
@@ -94,6 +97,7 @@ export const BankSoalGuru: React.FC = () => {
     setIsEditing(true);
     setFormId(soal.id);
     setFormTipe(soal.tipe);
+    setFormPaket(soal.paket ?? 'A');
     setFormSubtopik(soal.subtopik);
     setFormLevel(soal.level);
     setFormTP(soal.tp);
@@ -137,6 +141,11 @@ export const BankSoalGuru: React.FC = () => {
     e.preventDefault();
     const opsiList = [formOpsi1.trim(), formOpsi2.trim(), formOpsi3.trim(), formOpsi4.trim()].filter(Boolean);
 
+    if (!formPertanyaan.trim()) {
+      setFormError('Teks pertanyaan tidak boleh kosong!');
+      return;
+    }
+
     // 1. Validasi Minimal 3 opsi
     if (opsiList.length < 3) {
       setFormError('Minimal harus menyediakan 3 opsi jawaban pilihan ganda!');
@@ -162,9 +171,13 @@ export const BankSoalGuru: React.FC = () => {
     }
 
     // 4. Validasi Hitungan Pecahan
+    // Peringatan hitungan: tampilkan dulu & minta guru menekan Simpan sekali lagi untuk konfirmasi
+    // (sebelumnya peringatan di-set lalu modal langsung tertutup sehingga tidak pernah terbaca).
     const warn = cekPeringatanHitungan(formPertanyaan, kunciBersih);
-    if (warn) {
+    if (warn && formWarning !== warn) {
+      setFormError(null);
       setFormWarning(warn);
+      return;
     }
 
     const dataBaru: Soal = {
@@ -176,7 +189,8 @@ export const BankSoalGuru: React.FC = () => {
       pertanyaan: formPertanyaan.trim(),
       opsi: opsiList,
       kunci: kunciBersih,
-      pembahasan: formPembahasan.trim() || 'Pembahasan langkah demi langkah.'
+      pembahasan: formPembahasan.trim() || 'Pembahasan langkah demi langkah.',
+      paket: formTipe === 'turnamen' ? formPaket : undefined
     };
 
     if (isEditing) {
@@ -429,6 +443,7 @@ export const BankSoalGuru: React.FC = () => {
                     <option value="mengurutkan">Mengurutkan</option>
                     <option value="penjumlahan">Penjumlahan</option>
                     <option value="pengurangan">Pengurangan</option>
+                    <option value="campuran">Campuran</option>
                   </select>
                 </div>
 
@@ -444,6 +459,21 @@ export const BankSoalGuru: React.FC = () => {
                     <option value="sukar">Sukar</option>
                   </select>
                 </div>
+
+                {formTipe === 'turnamen' && (
+                  <div>
+                    <label className="text-[11px] font-extrabold text-gray-700 block">Paket Duel:</label>
+                    <select
+                      value={formPaket}
+                      onChange={(e) => setFormPaket(e.target.value as 'A' | 'B' | 'C')}
+                      className="w-full p-2 border-2 border-[#1E2149] rounded-lg text-xs font-bold"
+                    >
+                      <option value="A">Paket A</option>
+                      <option value="B">Paket B</option>
+                      <option value="C">Paket C</option>
+                    </select>
+                  </div>
+                )}
 
                 <div>
                   <label className="text-[11px] font-extrabold text-gray-700 block">TP:</label>
@@ -543,7 +573,7 @@ export const BankSoalGuru: React.FC = () => {
               {formWarning && (
                 <div className="p-2.5 bg-amber-100 border-2 border-[#FFB627] rounded-xl text-xs font-bold text-amber-900 flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 text-amber-700 shrink-0" />
-                  <span>{formWarning}</span>
+                  <span>{formWarning} Periksa kembali, lalu tekan <strong>Simpan Tetap</strong> bila kunci sudah benar.</span>
                 </div>
               )}
 
@@ -567,7 +597,7 @@ export const BankSoalGuru: React.FC = () => {
                   type="submit"
                   icon={<Check className="w-4 h-4" />}
                 >
-                  Simpan Soal
+                  {formWarning ? 'Simpan Tetap' : 'Simpan Soal'}
                 </TombolChunky>
               </div>
             </form>
