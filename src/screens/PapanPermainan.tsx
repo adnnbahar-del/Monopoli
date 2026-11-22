@@ -1,6 +1,12 @@
-import React, { useEffect, useState } from 'react';
-import { HUD } from '../components/HUD';
+import React, { useEffect, useRef, useState } from 'react';
+import { useReducedMotion } from 'framer-motion';
 import { Papan } from '../components/Papan';
+import { PanelPemain } from '../components/papan/PanelPemain';
+import { TimerArena, KontrolArena, KartuPetakAktif } from '../components/papan/PanelKontrol';
+import { useLayarPenuh } from '../hooks/useLayarPenuh';
+import { useSuaraPapan } from '../hooks/useSuaraPapan';
+import { usePengaturanStore } from '../store/pengaturanStore';
+import { audio } from '../engine/audioManager';
 import { useGameStore } from '../store/gameStore';
 import { DialogRamah } from '../components/DialogRamah';
 import { Toast } from '../components/Toast';
@@ -19,7 +25,6 @@ import { KartuKesempatanData } from '../data/kesempatan';
 import { Rekap, JawabanDetail } from './Rekap';
 import confetti from 'canvas-confetti';
 import {
-  ArrowRight,
   RotateCcw,
   LogOut,
   Users,
@@ -55,12 +60,17 @@ export const PapanPermainan: React.FC<PapanPermainanProps> = ({
     kurangPoinPemain,
     beliKios,
     tingkatkanKios,
-    selesaikanGame
+    selesaikanGame,
+    aksiPetakTertunda,
+    bersihkanAksiPetakTertunda
   } = useGameStore();
 
   const [dialogJedaOpen, setDialogJedaOpen] = useState(false);
   const [dialogKeluarOpen, setDialogKeluarOpen] = useState(false);
   const [petakDetail, setPetakDetail] = useState<PetakData | null>(null);
+  // Petak tempat soal/aksi berasal — dikunci saat bidak mendarat, terpisah dari petak
+  // yang sedang dilihat (petakDetail) agar hasil jawaban selalu diterapkan ke petak yang benar.
+  const [petakSoal, setPetakSoal] = useState<PetakData | null>(null);
 
   // State Modal Interaksi Soal & Kesempatan
   const [soalAktif, setSoalAktif] = useState<Soal | null>(null);
@@ -104,6 +114,39 @@ export const PapanPermainan: React.FC<PapanPermainanProps> = ({
   const pemainAktif = pemain[giliranIndex];
   const petakDataAktif = petakDetail || (petakAktif !== null ? DAFTAR_PETAK[petakAktif] : DAFTAR_PETAK[0]);
 
+  // ── Lapisan presentasi (tidak menyentuh logika permainan) ──
+  const kurangiGerak = useReducedMotion() ?? false;
+  const [mode3D, setMode3D] = useState(true);
+  const [pesanUtilitas, setPesanUtilitas] = useState<string | null>(null);
+  const layarPenuh = useLayarPenuh();
+  const bisu = usePengaturanStore((s) => s.bisu);
+  const toggleBisu = usePengaturanStore((s) => s.toggleBisu);
+  useSuaraPapan(pemain, giliranIndex, sedangMelangkah);
+
+  useEffect(() => {
+    if (!pesanUtilitas) return;
+    const t = setTimeout(() => setPesanUtilitas(null), 3000);
+    return () => clearTimeout(t);
+  }, [pesanUtilitas]);
+
+  const handleToggleSuara = () => {
+    if (bisu) {
+      audio.setBisu(false);
+      audio.putar('klik_tombol');
+    }
+    toggleBisu();
+  };
+
+  const handleLayarPenuh = async () => {
+    audio.putar('klik_tombol');
+    if (!layarPenuh.didukung) {
+      setPesanUtilitas('Layar penuh tidak didukung browser ini.');
+      return;
+    }
+    const ok = await layarPenuh.toggle();
+    if (!ok) setPesanUtilitas('Browser menolak mode layar penuh.');
+  };
+
   // Trigger Melempar Dadu
   const handleLemparDadu = () => {
     if (sedangMelangkah || jeda || soalAktif || kartuKesempatanAktif) return;
@@ -120,6 +163,7 @@ export const PapanPermainan: React.FC<PapanPermainanProps> = ({
 
   // Logika Aksi Petak Berdasarkan Jenisnya
   const prosesAksiPetak = (petak: PetakData) => {
+    setPetakSoal(petak);
     // 1. PETAK KIOS
     if (petak.jenis === 'kios' && petak.subtopik) {
       const pemilik = kepemilikan[petak.index];
@@ -184,9 +228,26 @@ export const PapanPermainan: React.FC<PapanPermainanProps> = ({
     }
   };
 
+  // Pemulihan: bila sesi dimuat ulang di tengah langkah, store menyelesaikan langkahnya
+  // dan menandai petak tujuan — jalankan aksi petak itu sama seperti pendaratan normal.
+  const aksiPulihDiproses = useRef<number | null>(null);
+  useEffect(() => {
+    if (aksiPetakTertunda === null || sudahSelesai) return;
+    // Cegah pemrosesan ganda (StrictMode menjalankan efek dua kali di mode pengembangan)
+    if (aksiPulihDiproses.current === aksiPetakTertunda) return;
+    aksiPulihDiproses.current = aksiPetakTertunda;
+    const petak = DAFTAR_PETAK[aksiPetakTertunda];
+    bersihkanAksiPetakTertunda();
+    if (!petak) return;
+    setPetakDetail(petak);
+    prosesAksiPetak(petak);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aksiPetakTertunda]);
+
   // Handler Jawaban Soal
   const handleJawabSoal = (pilihan: string, benar: boolean) => {
     if (!soalAktif) return;
+    const petakTarget = petakSoal ?? petakDataAktif;
 
     // Catat ke riwayat untuk bahan review
     setRiwayatJawaban((prev) => [
@@ -213,13 +274,13 @@ export const PapanPermainan: React.FC<PapanPermainanProps> = ({
       if (modeSoal === 'kios_kosong') {
         const poin = hitungPoinKios(soalAktif.level);
         tambahPoinPemain(pemainAktif.id, poin);
-        beliKios(petakDataAktif.index, pemainAktif.id);
-        useGameStore.setState({ pesanNotifikasi: `Hebat! Kios ${petakDataAktif.nama} resmi menjadi milikmu (+${poin} Poin)!` });
+        beliKios(petakTarget.index, pemainAktif.id);
+        useGameStore.setState({ pesanNotifikasi: `Hebat! Kios ${petakTarget.nama} resmi menjadi milikmu (+${poin} Poin)!` });
       } else if (modeSoal === 'uji_pemilik') {
         tambahPoinPemain(pemainAktif.id, 5);
         useGameStore.setState({ pesanNotifikasi: 'Berhasil menguji pemilik kios! Kamu mendapat +5 Poin!' });
       } else if (modeSoal === 'tingkatkan') {
-        tingkatkanKios(petakDataAktif.index);
+        tingkatkanKios(petakTarget.index);
         useGameStore.setState({ pesanNotifikasi: `Kiosmu meningkat menjadi Bintang 2!` });
       } else if (modeSoal === 'tantangan') {
         tambahPoinPemain(pemainAktif.id, 40);
@@ -228,7 +289,7 @@ export const PapanPermainan: React.FC<PapanPermainanProps> = ({
     } else {
       // Salah
       if (modeSoal === 'uji_pemilik') {
-        const pemilik = kepemilikan[petakDataAktif.index];
+        const pemilik = kepemilikan[petakTarget.index];
         const sewa = 5 * (pemilik ? pemilik.bintang : 1);
         kurangPoinPemain(pemainAktif.id, sewa);
         if (pemilik) tambahPoinPemain(pemilik.pemainId, sewa);
@@ -245,6 +306,7 @@ export const PapanPermainan: React.FC<PapanPermainanProps> = ({
   // Handler Tutup Kartu Soal / Lanjut Giliran
   const handleTutupSoal = () => {
     setSoalAktif(null);
+    setPetakSoal(null);
     setModeSoal(null);
     setSisaDiskusi(null);
     setSisaTantangan(null);
@@ -284,6 +346,7 @@ export const PapanPermainan: React.FC<PapanPermainanProps> = ({
     resetGame();
     setDialogJedaOpen(false);
     setPetakDetail(null);
+    setPetakSoal(null);
     setSoalAktif(null);
     setKartuKesempatanAktif(null);
   };
@@ -302,78 +365,65 @@ export const PapanPermainan: React.FC<PapanPermainanProps> = ({
   }
 
   return (
-    <div className="min-h-screen pb-12 bg-gradient-to-br from-[#FFE3B3] to-[#FFB8A1] tapis-pattern select-none flex flex-col justify-between">
-      {/* 1. HUD BAR ATAS (STICKY) */}
-      <HUD
-        pemainAktif={{
-          id: pemainAktif.id,
-          nama: pemainAktif.nama,
-          timNama: pemainAktif.timNama,
-          warna: pemainAktif.warna,
-          bentuk: pemainAktif.bentuk,
-          poin: pemainAktif.poin
-        }}
-        semuaPemain={pemain.map((p) => ({
-          id: p.id,
-          nama: p.nama,
-          timNama: p.timNama,
-          warna: p.warna,
-          bentuk: p.bentuk,
-          poin: p.poin
-        }))}
-        sisaDetik={sisaDetik}
-        onJeda={handleBukaJeda}
-      />
+    <div className="arena-papan min-h-[100dvh] select-none">
+      {/* LAYOUT ARENA: Panel Pemain | Papan | Panel Kontrol */}
+      <div className="arena-papan-grid">
+        {/* 1. PANEL KIRI — PEMAIN & GILIRAN */}
+        <div className="arena-kolom-kiri">
+          <PanelPemain pemain={pemain} giliranIndex={giliranIndex} kurangiGerak={kurangiGerak} />
+        </div>
 
-      {/* 2. AREA UTAMA: PAPAN PERMAINAN 28 PETAK */}
-      <div className="max-w-5xl mx-auto w-full px-3 py-4 flex flex-col items-center">
-        <Papan
-          pemain={pemain}
-          giliranIndex={giliranIndex}
-          kepemilikan={kepemilikan}
-          petakAktif={petakAktif}
-          angkaDadu={angkaDadu}
-          sedangMelangkah={sedangMelangkah}
-          onLemparDadu={handleLemparDadu}
-          onPilihPetak={(petak) => setPetakDetail(petak)}
-        />
+        {/* 2. AREA UTAMA: PAPAN PERMAINAN 28 PETAK */}
+        <main className="arena-kolom-papan" aria-label="Papan permainan">
+          <Papan
+            pemain={pemain}
+            giliranIndex={giliranIndex}
+            kepemilikan={kepemilikan}
+            petakAktif={petakAktif}
+            angkaDadu={angkaDadu}
+            sedangMelangkah={sedangMelangkah}
+            onLemparDadu={handleLemparDadu}
+            onPilihPetak={(petak) => setPetakDetail(petak)}
+            mode3D={mode3D}
+            kurangiGerak={kurangiGerak}
+          />
+        </main>
 
-        {/* Panel Info Petak yang Sedang Disinggahi */}
-        {petakDataAktif && !sedangMelangkah && (
-          <div className="mt-4 w-full max-w-2xl bg-[#FFF8EC] border-4 border-[#1E2149] rounded-2xl p-4 shadow-soft-card flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div
-                className="w-12 h-12 rounded-xl border-2 border-[#1E2149] flex items-center justify-center font-display font-black text-white shrink-0 shadow-sm"
-                style={{ backgroundColor: petakDataAktif.warna }}
-              >
-                {petakDataAktif.index}
-              </div>
-              <div>
-                <span className="text-[11px] font-display font-black uppercase text-gray-500">
-                  Petak Aktif • {petakDataAktif.jenis.toUpperCase()}
-                </span>
-                <h2 className="text-base sm:text-lg font-display font-black text-[#1E2149]">
-                  {petakDataAktif.nama}
-                </h2>
-                <p className="text-xs font-bold text-gray-700">
-                  {petakDataAktif.deskripsi}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <TombolChunky
-                variant="secondary"
-                size="sm"
-                icon={<ArrowRight className="w-4 h-4" />}
-                iconPosition="right"
-                onClick={gantiGiliran}
-              >
-                Lewati Giliran
-              </TombolChunky>
-            </div>
-          </div>
-        )}
+        {/* 3. PANEL KANAN — TIMER, KONTROL & PETAK AKTIF */}
+        <aside className="arena-kolom-kanan panel-arena flex flex-col gap-3" aria-label="Kontrol permainan">
+          <TimerArena sisaDetik={sisaDetik} jeda={jeda} />
+          <KontrolArena
+            onJeda={() => {
+              audio.putar('klik_tombol');
+              handleBukaJeda();
+            }}
+            layarPenuhAktif={layarPenuh.aktif}
+            onLayarPenuh={handleLayarPenuh}
+            suaraAktif={!bisu}
+            onSuara={handleToggleSuara}
+            mode3D={mode3D}
+            onMode3D={() => {
+              audio.putar('klik_tombol');
+              setMode3D((m) => !m);
+            }}
+          />
+          {pesanUtilitas && (
+            <p role="status" className="rounded-xl bg-[#101C48] border-2 border-[#FFD45A] px-3 py-2 text-sm font-bold text-white">
+              {pesanUtilitas}
+            </p>
+          )}
+          {/* Informasi petak aktif (kondisi & aksi sama seperti sebelumnya) */}
+          {petakDataAktif && (
+            <KartuPetakAktif
+              petak={petakDataAktif}
+              sedangMelangkah={sedangMelangkah}
+              onLewatiGiliran={() => {
+                audio.putar('klik_tombol');
+                gantiGiliran();
+              }}
+            />
+          )}
+        </aside>
       </div>
 
       {/* 3. MODAL KARTU SOAL INTERAKTIF (FLIP 3D) */}

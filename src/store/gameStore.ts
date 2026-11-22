@@ -24,6 +24,13 @@ export interface KepemilikanKios {
   bintang: number; // 1 atau 2
 }
 
+export interface LangkahBerjalan {
+  pemainIndex: number;
+  posisiAkhir: number;
+  bonusPoin: number;
+  melewatiStart: boolean;
+}
+
 export interface GameState {
   mode: 'latihan' | 'turnamen';
   mejaId?: string;
@@ -38,6 +45,10 @@ export interface GameState {
   petakAktif: number | null;
   soalTerpakai: string[];
   pesanNotifikasi: string | null;
+  /** Langkah yang sedang berjalan — disimpan agar bisa dipulihkan bila halaman dimuat ulang di tengah langkah. */
+  langkahBerjalan: LangkahBerjalan | null;
+  /** Petak yang aksinya (soal/kesempatan/dll.) belum diproses setelah pemulihan langkah. */
+  aksiPetakTertunda: number | null;
 
   // Actions
   inisialisasiGame: (daftarPemain: Pemain[], durasiMenit?: number) => void;
@@ -52,6 +63,7 @@ export interface GameState {
   kurangiTimer: () => void;
   resetGame: () => void;
   selesaikanGame: () => void;
+  bersihkanAksiPetakTertunda: () => void;
 }
 
 const PEMAIN_DEFAULT: Pemain[] = [
@@ -76,6 +88,8 @@ export const useGameStore = create<GameState>()(
       petakAktif: 0,
       soalTerpakai: [],
       pesanNotifikasi: null,
+      langkahBerjalan: null,
+      aksiPetakTertunda: null,
 
       inisialisasiGame: (daftarPemain, durasiMenit = 20) => set({
         pemain: daftarPemain.length > 0 ? daftarPemain : PEMAIN_DEFAULT,
@@ -88,7 +102,9 @@ export const useGameStore = create<GameState>()(
         angkaDadu: 1,
         petakAktif: 0,
         soalTerpakai: [],
-        pesanNotifikasi: 'Permainan Dimulai! Giliran Pemain Pertama.'
+        pesanNotifikasi: 'Permainan Dimulai! Giliran Pemain Pertama.',
+        langkahBerjalan: null,
+        aksiPetakTertunda: null
       }),
 
       kocokDanJalankan: (onStep, onSelesai) => {
@@ -96,10 +112,20 @@ export const useGameStore = create<GameState>()(
         if (state.sedangMelangkah || state.jeda || state.sudahSelesai) return;
 
         const dadu = lemparDadu();
-        set({ angkaDadu: dadu, sedangMelangkah: true, pesanNotifikasi: `Dadu: ${dadu}! Bidak melangkah...` });
-
         const pemainAktif = state.pemain[state.giliranIndex];
         const hasil = prosesGerak(pemainAktif.posisi, dadu);
+
+        set({
+          angkaDadu: dadu,
+          sedangMelangkah: true,
+          pesanNotifikasi: `Dadu: ${dadu}! Bidak melangkah...`,
+          langkahBerjalan: {
+            pemainIndex: state.giliranIndex,
+            posisiAkhir: hasil.posisiAkhir,
+            bonusPoin: hasil.bonusPoin,
+            melewatiStart: hasil.melewatiStart
+          }
+        });
 
         // Jalankan animasi langkah demi langkah
         let stepCount = 0;
@@ -128,7 +154,7 @@ export const useGameStore = create<GameState>()(
               }));
             }
 
-            set({ sedangMelangkah: false });
+            set({ sedangMelangkah: false, langkahBerjalan: null });
             if (onSelesai) onSelesai(hasil.posisiAkhir, hasil.melewatiStart);
           }
         }, 280); // 280ms per langkah
@@ -214,14 +240,54 @@ export const useGameStore = create<GameState>()(
           angkaDadu: 1,
           petakAktif: 0,
           soalTerpakai: [],
-          pesanNotifikasi: 'Permainan Dimulai Ulang!'
+          pesanNotifikasi: 'Permainan Dimulai Ulang!',
+          langkahBerjalan: null,
+          aksiPetakTertunda: null
         });
       },
 
-      selesaikanGame: () => set({ sudahSelesai: true, jeda: true })
+      selesaikanGame: () => set({ sudahSelesai: true, jeda: true }),
+
+      bersihkanAksiPetakTertunda: () => set({ aksiPetakTertunda: null })
     }),
     {
       name: 'monepeca_game_session',
+      // Pulihkan sesi yang tersimpan di tengah langkah bidak (mis. halaman dimuat ulang):
+      // interval langkah tidak ikut tersimpan, jadi tanpa ini `sedangMelangkah` macet true
+      // dan dadu tidak bisa dikocok lagi.
+      merge: (tersimpan, sekarang) => pulihkanSesi(tersimpan as Partial<GameState> | undefined, sekarang)
     }
   )
 );
+
+/**
+ * Menggabungkan sesi tersimpan ke state awal dan menyelesaikan langkah yang terputus.
+ * Hasil akhir sama dengan bila langkah selesai normal: bidak di petak tujuan,
+ * bonus START diberikan bila dilewati, lalu aksi petak tujuan diproses oleh layar papan.
+ */
+export function pulihkanSesi(tersimpan: Partial<GameState> | undefined, sekarang: GameState): GameState {
+  const gabung: GameState = { ...sekarang, ...(tersimpan ?? {}) };
+  if (!gabung.sedangMelangkah) return gabung;
+
+  const langkah = gabung.langkahBerjalan;
+  if (!langkah || !gabung.pemain[langkah.pemainIndex]) {
+    // Data lama tanpa info langkah: cukup lepaskan kunci agar permainan bisa berlanjut
+    return { ...gabung, sedangMelangkah: false, langkahBerjalan: null };
+  }
+
+  return {
+    ...gabung,
+    pemain: gabung.pemain.map((p, idx) =>
+      idx === langkah.pemainIndex
+        ? { ...p, posisi: langkah.posisiAkhir, poin: p.poin + (langkah.melewatiStart ? langkah.bonusPoin : 0) }
+        : p
+    ),
+    petakAktif: langkah.posisiAkhir,
+    sedangMelangkah: false,
+    langkahBerjalan: null,
+    aksiPetakTertunda: langkah.posisiAkhir,
+    pesanNotifikasi: langkah.melewatiStart
+      ? `Langkah dipulihkan. Melewati Gerbang START! +${langkah.bonusPoin} Poin Bonus!`
+      : 'Langkah bidak dipulihkan setelah halaman dimuat ulang.'
+  };
+}

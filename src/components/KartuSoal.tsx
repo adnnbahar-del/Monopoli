@@ -110,17 +110,20 @@ export const KartuSoal: React.FC<KartuSoalProps> = ({
             bg-gradient-to-br ${warnaTipe}
             border-4 border-[#1E2149] rounded-card p-6 shadow-soft-card
             flex flex-col items-center justify-between text-white text-center
-            tapis-pattern
+            overflow-hidden
           `}
         >
-          <div className="w-full flex justify-between items-center text-xs sm:text-sm font-bold uppercase tracking-wider bg-white/20 backdrop-blur-sm px-4 py-1.5 rounded-full border border-white/40">
+          {/* Motif tapis sebagai lapisan terpisah agar tidak menimpa gradien warna kartu */}
+          <div className="absolute inset-0 tapis-pattern pointer-events-none" aria-hidden="true" />
+
+          <div className="relative w-full flex justify-between items-center text-xs sm:text-sm font-bold uppercase tracking-wider bg-white/20 backdrop-blur-sm px-4 py-1.5 rounded-full border border-white/40">
             <span>{tipe}</span>
             <span className="flex items-center gap-1 font-extrabold">
               <Sparkles className="w-4 h-4" /> Level: {level}
             </span>
           </div>
 
-          <div className="my-auto flex flex-col items-center gap-3">
+          <div className="relative my-auto flex flex-col items-center gap-3">
             <div className="w-24 h-24 rounded-full bg-white text-[#1E2149] border-4 border-[#1E2149] flex items-center justify-center shadow-[0_6px_0_rgba(0,0,0,0.15)]">
               <HelpCircle className="w-12 h-12 text-[#FF6B35]" />
             </div>
@@ -134,7 +137,7 @@ export const KartuSoal: React.FC<KartuSoalProps> = ({
             )}
           </div>
 
-          <div className="w-full pt-4 border-t border-white/30 flex items-center justify-center gap-2 text-sm font-bold animate-pulse">
+          <div className="relative w-full pt-4 border-t border-white/30 flex items-center justify-center gap-2 text-sm font-bold animate-pulse">
             <RotateCw className="w-4 h-4" />
             <span>Ketuk kartu untuk membuka soal</span>
           </div>
