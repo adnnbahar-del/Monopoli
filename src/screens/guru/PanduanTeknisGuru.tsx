@@ -49,6 +49,11 @@ export const PanduanTeknisGuru: React.FC = () => {
     setCekTokenLoading(true);
     setStatusToken(null);
     const res = await testKoneksiSheets();
+    // Token yang ditolak server tidak disimpan (gagal karena koneksi: token tetap disimpan)
+    if (!res.sukses && res.pesan.includes('Token admin salah')) {
+      setTokenAdmin('');
+      setAdaToken(false);
+    }
     setStatusToken(res);
     setCekTokenLoading(false);
   };
