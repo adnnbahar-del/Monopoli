@@ -200,3 +200,105 @@ textarea:focus-visible {
   }
 }
 
+
+/* ── Beranda: Latar Arena Turnamen ──────────────────────────── */
+.arena-root {
+  background:
+    radial-gradient(ellipse 70% 45% at 50% 0%, rgba(255, 255, 255, 0.55), transparent 70%),
+    linear-gradient(180deg, #B9A2FF 0%, #E3B8FF 28%, #FFC9E4 55%, #FFE1C7 82%, #FFD3B0 100%);
+}
+
+.high-contrast .arena-root {
+  background: linear-gradient(180deg, #E9E2FF 0%, #FFF1DB 100%);
+}
+
+.arena-latar {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.arena-sorot {
+  position: absolute;
+  top: -10%;
+  width: 34%;
+  height: 80%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0));
+  filter: blur(18px);
+  transform-origin: top center;
+  opacity: 0.7;
+}
+.arena-sorot-kiri { left: 4%; transform: rotate(18deg); }
+.arena-sorot-kanan { right: 4%; transform: rotate(-18deg); }
+.arena-sorot-tengah { left: 33%; width: 34%; opacity: 0.45; }
+
+.arena-konfeti {
+  position: absolute;
+  border-radius: 3px;
+  border: 1.5px solid rgba(30, 33, 73, 0.35);
+  transform: rotate(var(--rot, 0deg));
+  animation: arena-melayang 5s ease-in-out infinite;
+}
+
+@keyframes arena-melayang {
+  0%, 100% { transform: translateY(0) rotate(var(--rot, 0deg)); }
+  50% { transform: translateY(10px) rotate(calc(var(--rot, 0deg) + 25deg)); }
+}
+
+.arena-lantai {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 140px;
+  perspective: 600px;
+  background: linear-gradient(180deg, transparent, rgba(255, 210, 230, 0.6));
+}
+
+.arena-jalur {
+  position: absolute;
+  left: -10%;
+  right: -10%;
+  bottom: 18px;
+  display: flex;
+  gap: 6px;
+  transform: rotateX(55deg);
+  transform-origin: bottom center;
+}
+
+.arena-petak {
+  flex: 1;
+  height: 70px;
+  border-radius: 10px;
+  border: 3px solid #1E2149;
+  box-shadow: inset 0 -8px 0 rgba(30, 33, 73, 0.2);
+  opacity: 0.85;
+}
+
+/* Sakelar (toggle) chunky */
+.sakelar {
+  position: relative;
+  width: 52px;
+  height: 30px;
+  border-radius: 999px;
+  border: 2.5px solid #1E2149;
+  background: #CBD2E0;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+.sakelar[aria-checked="true"] { background: #22A55B; }
+.sakelar::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 21px;
+  height: 21px;
+  border-radius: 999px;
+  background: #fff;
+  border: 2px solid #1E2149;
+  transition: transform 0.2s;
+}
+.sakelar[aria-checked="true"]::after { transform: translateX(22px); }
