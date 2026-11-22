@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
 import {
   Zap,
@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { audio, SFXKunci } from '../engine/audioManager';
 import { usePengaturanStore } from '../store/pengaturanStore';
+import { useLayarPenuh } from '../hooks/useLayarPenuh';
 import { ArenaLatar } from '../components/beranda/ArenaLatar';
 import { HeaderArena } from '../components/beranda/HeaderArena';
 import { PapanSkorKelompok } from '../components/beranda/PapanSkorKelompok';
@@ -146,34 +147,6 @@ const KartuMenu: React.FC<KartuMenuProps> = ({
     <ChevronRight className={`w-5 h-5 shrink-0 group-hover:translate-x-1 transition-transform ${teksGelap ? 'text-[#1E2149]' : 'text-white'}`} />
   </motion.button>
 );
-
-/* ── Hook layar penuh (Fase 4) ────────────────────────────────── */
-function useLayarPenuh() {
-  const [aktif, setAktif] = useState<boolean>(
-    typeof document !== 'undefined' && !!document.fullscreenElement
-  );
-  const didukung = typeof document !== 'undefined' && !!document.documentElement.requestFullscreen;
-
-  useEffect(() => {
-    const handler = () => setAktif(!!document.fullscreenElement);
-    document.addEventListener('fullscreenchange', handler);
-    return () => document.removeEventListener('fullscreenchange', handler);
-  }, []);
-
-  const toggle = async () => {
-    try {
-      if (document.fullscreenElement) {
-        await document.exitFullscreen();
-      } else {
-        await document.documentElement.requestFullscreen();
-      }
-    } catch {
-      /* browser menolak (mis. iOS Safari) — abaikan */
-    }
-  };
-
-  return { aktif, didukung, toggle };
-}
 
 export const Beranda: React.FC<BerandaProps> = ({
   onNavigasi,

@@ -7,13 +7,16 @@ export interface PakPecaProps {
   size?: number;
   pesan?: string;
   className?: string;
+  /** Animasikan tangan melambai (dekoratif, dihormati reduced-motion) */
+  melambai?: boolean;
 }
 
 export const PakPeca: React.FC<PakPecaProps> = ({
   ekspresi = 'ceria',
   size = 120,
   pesan,
-  className = ''
+  className = '',
+  melambai = false
 }) => {
   return (
     <div className={`inline-flex flex-col sm:flex-row items-center gap-3 ${className}`}>
@@ -140,7 +143,9 @@ export const PakPeca: React.FC<PakPecaProps> = ({
 
         {/* Tangan Bolu Menyapa */}
         <g transform="translate(130, 85)">
+          <g className={melambai ? 'pakpeca-lambai' : undefined}>
           <path d="M 4 8 Q 18 0 20 14 Q 22 24 10 22 Z" fill="#FFCA28" stroke="#1E2149" strokeWidth="3.5" />
+          </g>
         </g>
       </svg>
 
