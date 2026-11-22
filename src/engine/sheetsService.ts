@@ -50,7 +50,29 @@ export interface SiswaSync {
   kemampuan: 'tinggi' | 'sedang' | 'rendah';
 }
 
-const DEFAULT_TOKEN = import.meta.env.VITE_SHEETS_TOKEN || 'monopeca123';
+/**
+ * Token admin Spreadsheet.
+ * TIDAK dibundel ke aplikasi (repo & situs bersifat publik). Admin mengetik token sekali
+ * di Panel Guru → Panduan Teknis, lalu token disimpan hanya di perangkat tersebut.
+ */
+const STORAGE_KEY_TOKEN = 'monepeca_token_admin';
+
+export const getTokenAdmin = (): string => {
+  try {
+    return (localStorage.getItem(STORAGE_KEY_TOKEN) || '').trim();
+  } catch {
+    return '';
+  }
+};
+
+export const setTokenAdmin = (token: string): void => {
+  const bersih = token.trim();
+  if (bersih) localStorage.setItem(STORAGE_KEY_TOKEN, bersih);
+  else localStorage.removeItem(STORAGE_KEY_TOKEN);
+};
+
+const PESAN_TOKEN_KOSONG =
+  'Token admin belum diisi di perangkat ini. Buka Panel Guru → Panduan Teknis → Token Admin Spreadsheet.';
 
 /**
  * Uji koneksi ke Web App Apps Script
@@ -61,8 +83,11 @@ export async function testKoneksiSheets(): Promise<{ sukses: boolean; pesan: str
     return { sukses: false, pesan: 'URL Google Apps Script belum dikonfigurasi!' };
   }
 
+  const token = getTokenAdmin();
   try {
-    const res = await fetch(`${url}?token=${DEFAULT_TOKEN}&aksi=ping`, {
+    // Dengan token: cek koneksi sekaligus keabsahan token. Tanpa token: hanya ping.
+    const query = token ? `aksi=cekToken&token=${encodeURIComponent(token)}` : 'aksi=ping';
+    const res = await fetch(`${url}?${query}`, {
       method: 'GET',
       mode: 'cors',
     });
@@ -73,6 +98,9 @@ export async function testKoneksiSheets(): Promise<{ sukses: boolean; pesan: str
 
     const data = await res.json();
     if (data.status === 'success') {
+      if (!token) {
+        return { sukses: false, pesan: `Server terhubung, tetapi ${PESAN_TOKEN_KOSONG.charAt(0).toLowerCase()}${PESAN_TOKEN_KOSONG.slice(1)}` };
+      }
       return {
         sukses: true,
         pesan: data.pesan || 'Koneksi ke Google Spreadsheet berhasil terhubung!',
@@ -102,6 +130,10 @@ export async function kirimRekapNilaiKeSheets(
   if (!url) {
     return { sukses: false, pesan: 'URL Google Apps Script belum dikonfigurasi!' };
   }
+  const token = getTokenAdmin();
+  if (!token) {
+    return { sukses: false, pesan: PESAN_TOKEN_KOSONG };
+  }
 
   if (dataRekap.length === 0) {
     return { sukses: false, pesan: 'Tidak ada data nilai siswa untuk dikirim.' };
@@ -117,7 +149,7 @@ export async function kirimRekapNilaiKeSheets(
       body: JSON.stringify({
         action: 'simpanRekap',
         aksi: 'simpanRekap',
-        token: DEFAULT_TOKEN,
+        token,
         data: dataRekap,
       }),
     });
@@ -158,6 +190,10 @@ export async function sinkronSiswaKeSheets(
   if (!url) {
     return { sukses: false, pesan: 'URL Google Apps Script belum dikonfigurasi!' };
   }
+  const token = getTokenAdmin();
+  if (!token) {
+    return { sukses: false, pesan: PESAN_TOKEN_KOSONG };
+  }
 
   try {
     const res = await fetch(url, {
@@ -168,7 +204,7 @@ export async function sinkronSiswaKeSheets(
       body: JSON.stringify({
         action: 'simpanSiswa',
         aksi: 'simpanSiswa',
-        token: DEFAULT_TOKEN,
+        token,
         data: daftarSiswa,
       }),
     });
@@ -210,9 +246,13 @@ export async function tarikSiswaDariSheets(): Promise<{
   if (!url) {
     return { sukses: false, pesan: 'URL Google Apps Script belum dikonfigurasi!' };
   }
+  const token = getTokenAdmin();
+  if (!token) {
+    return { sukses: false, pesan: PESAN_TOKEN_KOSONG };
+  }
 
   try {
-    const res = await fetch(`${url}?token=${DEFAULT_TOKEN}&aksi=getSiswa`, {
+    const res = await fetch(`${url}?token=${encodeURIComponent(token)}&aksi=getSiswa`, {
       method: 'GET',
       mode: 'cors',
     });

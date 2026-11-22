@@ -9,7 +9,10 @@
 const SPREADSHEET_ID = "1qQfn43wBEdoCLBWsuIqN5DiUvoFimT3XX1GYi5Y6TQs";
 
 // Token verifikasi sederhana untuk memfilter request iseng
-const TOKEN_RAHASIA = "monepeca123";
+// Token admin TIDAK disimpan di kode (repo ini publik). Yang disimpan hanya hash SHA-256
+// dari token yang sudah dinormalisasi (huruf besar, tanpa spasi & tanda hubung).
+// Ganti token: buat token baru, hitung SHA-256-nya, ganti nilai di bawah, lalu deploy ulang.
+const HASH_TOKEN_ADMIN = "47bd043bb96a18e876de0e37d86bac04efbba716248791d815ae8730215697dc";
 
 /**
  * Helper untuk mendapatkan instance Spreadsheet
@@ -114,9 +117,15 @@ function teksAman(nilai) {
   return /^[=+\-@]/.test(t) ? "'" + t : t;
 }
 
+function hashToken(token) {
+  const normal = String(token).toUpperCase().replace(/[\s-]/g, "");
+  const bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, normal, Utilities.Charset.UTF_8);
+  return bytes.map(function (b) { return ((b & 0xff) + 0x100).toString(16).slice(1); }).join("");
+}
+
 function tokenValid(token) {
-  const validTokens = [TOKEN_RAHASIA, "monepeca123", "monopeca123"];
-  return typeof token === "string" && validTokens.indexOf(token) !== -1;
+  if (typeof token !== "string" || token.trim().length < 8) return false;
+  return hashToken(token) === HASH_TOKEN_ADMIN;
 }
 
 function doGet(e) {
@@ -129,6 +138,15 @@ function doGet(e) {
         pesan: "Koneksi backend Google Apps Script MONOPECA Berhasil Terhubung!",
         waktu: new Date().toISOString()
       });
+    }
+
+    // Cek token admin tanpa membaca/menulis data apa pun
+    if (action === "cekToken") {
+      return kirimResponse(
+        tokenValid(e.parameter.token)
+          ? { status: "success", pesan: "Token admin valid. Koneksi Spreadsheet siap dipakai." }
+          : { status: "error", pesan: "Token admin salah atau belum diisi." }
+      );
     }
 
     if (action === "getSiswa" || action === "ambilSiswa") {

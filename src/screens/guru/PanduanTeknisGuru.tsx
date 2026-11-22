@@ -14,12 +14,16 @@ import {
   ExternalLink,
   Code,
   Save,
-  CheckCircle2
+  CheckCircle2,
+  KeyRound
 } from 'lucide-react';
 import {
   getSheetsUrl,
   setCustomSheetsUrl,
-  getSpreadsheetUrl
+  getSpreadsheetUrl,
+  getTokenAdmin,
+  setTokenAdmin,
+  testKoneksiSheets
 } from '../../engine/sheetsService';
 
 export const PanduanTeknisGuru: React.FC = () => {
@@ -29,6 +33,32 @@ export const PanduanTeknisGuru: React.FC = () => {
 
   const [inputUrl, setInputUrl] = useState(getSheetsUrl());
   const [tersimpanMsg, setTersimpanMsg] = useState(false);
+
+  // Token admin Spreadsheet — hanya disimpan di perangkat ini, tidak ikut aplikasi
+  const [inputToken, setInputToken] = useState('');
+  const [adaToken, setAdaToken] = useState(() => getTokenAdmin().length > 0);
+  const [cekTokenLoading, setCekTokenLoading] = useState(false);
+  const [statusToken, setStatusToken] = useState<{ sukses: boolean; pesan: string } | null>(null);
+
+  const handleSimpanToken = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inputToken.trim()) return;
+    setTokenAdmin(inputToken);
+    setAdaToken(true);
+    setInputToken('');
+    setCekTokenLoading(true);
+    setStatusToken(null);
+    const res = await testKoneksiSheets();
+    setStatusToken(res);
+    setCekTokenLoading(false);
+  };
+
+  const handleHapusToken = () => {
+    if (!window.confirm('Hapus token admin dari perangkat ini? Sinkron Spreadsheet tidak bisa dipakai sampai token diisi lagi.')) return;
+    setTokenAdmin('');
+    setAdaToken(false);
+    setStatusToken(null);
+  };
 
   const spreadsheetUrl = getSpreadsheetUrl();
   const scriptEditorUrl = 'https://script.google.com/d/1sluXuQQ8gFBE22OXN4-pX4cKiefoJ99SkGqfFDXny-c09lvB9HmnU5GM/edit';
@@ -235,6 +265,57 @@ export const PanduanTeknisGuru: React.FC = () => {
               <CheckCircle2 className="w-3.5 h-3.5" /> URL Web App tersimpan di memori peramban!
             </p>
           )}
+        </form>
+
+        {/* Token Admin Spreadsheet (disimpan per perangkat, bisa disimpan di pengelola sandi HP) */}
+        <form onSubmit={handleSimpanToken} className="space-y-2 pt-2 border-t border-gray-200" autoComplete="on">
+          <label htmlFor="token-admin" className="text-xs font-display font-extrabold text-[#1E2149] flex items-center gap-1.5">
+            <KeyRound className="w-4 h-4 text-[#FF6B35]" />
+            Token Admin Spreadsheet:
+            <span className={`ml-1 px-2 py-0.5 rounded-full text-[10px] font-black ${adaToken ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+              {adaToken ? 'Tersimpan di perangkat ini' : 'Belum diisi'}
+            </span>
+          </label>
+          {/* Nama pengguna tersembunyi agar pengelola sandi HP bisa menyimpan token sebagai kata sandi */}
+          <input type="text" name="username" autoComplete="username" value="admin-monopeca" readOnly hidden />
+          <div className="flex flex-col sm:flex-row gap-2">
+            <input
+              id="token-admin"
+              name="password"
+              type="password"
+              autoComplete="current-password"
+              value={inputToken}
+              onChange={(e) => setInputToken(e.target.value)}
+              placeholder={adaToken ? 'Ketik token baru untuk mengganti…' : 'MPC-XXXX-XXXX-XXXX-XXXX'}
+              className="flex-1 px-3.5 py-2 rounded-xl border-2 border-[#1E2149] bg-white font-mono text-xs focus:outline-none"
+            />
+            <button
+              type="submit"
+              disabled={!inputToken.trim() || cekTokenLoading}
+              className="px-4 py-2 rounded-xl bg-[#FF6B35] hover:bg-[#E85D26] disabled:opacity-50 text-white font-display font-black text-xs flex items-center justify-center gap-1.5 shadow-xs transition-all"
+            >
+              <Save className="w-4 h-4" />
+              <span>{cekTokenLoading ? 'Memeriksa…' : 'Simpan & Cek Token'}</span>
+            </button>
+            {adaToken && (
+              <button
+                type="button"
+                onClick={handleHapusToken}
+                className="px-4 py-2 rounded-xl bg-white border-2 border-[#E5484D] text-[#E5484D] font-display font-black text-xs"
+              >
+                Hapus dari Perangkat
+              </button>
+            )}
+          </div>
+          {statusToken && (
+            <p role="status" className={`text-xs font-bold flex items-center gap-1 ${statusToken.sukses ? 'text-emerald-600' : 'text-[#E5484D]'}`}>
+              {statusToken.sukses && <CheckCircle2 className="w-3.5 h-3.5" />} {statusToken.pesan}
+            </p>
+          )}
+          <p className="text-[11px] font-bold text-gray-500 leading-snug">
+            Token hanya disimpan di peramban perangkat ini dan tidak ikut aplikasi. Isi sekali di setiap perangkat admin
+            (laptop kelas, HP). Simpan token di pengelola kata sandi HP agar tidak hilang.
+          </p>
         </form>
 
         <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs font-bold text-amber-900 leading-relaxed space-y-1">
