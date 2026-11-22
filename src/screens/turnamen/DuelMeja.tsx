@@ -13,6 +13,9 @@ import { ArrowLeft, CheckCircle, QrCode } from 'lucide-react';
 
 export type FaseDuel = 'menjawab' | 'umpan_balik';
 
+/** Skor ronde monopoli awal tiap siswa di meja (guru mengisi skor sebenarnya). */
+const SKOR_MONOPOLI_DEFAULT = 0;
+
 export interface JawabanDuelItem {
   dipilih: string | null;
   benar: boolean | null;
@@ -141,7 +144,7 @@ export const DuelMeja: React.FC<DuelMejaProps> = ({
   const selesaikanSesiDuel = () => {
     const skorList = anggota.map((s) => ({
       siswaId: s.id,
-      poinMonopoli: poinMonopoli[s.id] ?? 40, // default poin monopoli jika tidak diubah
+      poinMonopoli: poinMonopoli[s.id] ?? SKOR_MONOPOLI_DEFAULT, // default bila tidak diisi guru
       poinDuel: skorDuel[s.id] ?? 0
     }));
 
@@ -197,7 +200,7 @@ export const DuelMeja: React.FC<DuelMejaProps> = ({
           </span>
           {anggota.map((s) => {
             const tim = daftarTim.find((t) => t.anggotaIds.includes(s.id));
-            const pMono = poinMonopoli[s.id] ?? 40;
+            const pMono = poinMonopoli[s.id] ?? SKOR_MONOPOLI_DEFAULT;
             const pDuel = skorDuel[s.id] ?? 0;
             const total = pMono + pDuel;
 
@@ -317,7 +320,7 @@ export const DuelMeja: React.FC<DuelMejaProps> = ({
 
       {/* Input Opsional Poin Monopoli */}
       <div className="p-4 rounded-2xl bg-[#FFF8EC] border-3 border-[#1E2149] shadow-sm flex flex-wrap items-center justify-between gap-3 text-xs font-bold text-gray-700">
-        <span>Skor Ronde Monopoli (Default 40, bisa disesuaikan):</span>
+        <span>Skor Ronde Monopoli (Default {SKOR_MONOPOLI_DEFAULT}, bisa disesuaikan):</span>
         <div className="flex flex-wrap gap-2">
           {anggota.map((s) => (
             <label key={s.id} className="flex items-center gap-1 bg-white px-2 py-1 rounded-lg border border-gray-300">
@@ -325,7 +328,7 @@ export const DuelMeja: React.FC<DuelMejaProps> = ({
               <input
                 type="number"
                 min="0"
-                value={poinMonopoli[s.id] !== undefined ? poinMonopoli[s.id] : 40}
+                value={poinMonopoli[s.id] !== undefined ? poinMonopoli[s.id] : SKOR_MONOPOLI_DEFAULT}
                 onChange={(e) => setPoinMonopoli({ ...poinMonopoli, [s.id]: parseInt(e.target.value) || 0 })}
                 className="w-12 text-center border rounded font-black"
               />
