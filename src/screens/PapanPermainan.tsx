@@ -22,7 +22,8 @@ import {
   Soal
 } from '../engine/kartu';
 import { KartuKesempatanData } from '../data/kesempatan';
-import { Rekap, JawabanDetail } from './Rekap';
+import { Rekap } from './Rekap';
+import { useGuruStore } from '../store/guruStore';
 import confetti from 'canvas-confetti';
 import {
   RotateCcw,
@@ -62,8 +63,23 @@ export const PapanPermainan: React.FC<PapanPermainanProps> = ({
     tingkatkanKios,
     selesaikanGame,
     aksiPetakTertunda,
-    bersihkanAksiPetakTertunda
+    bersihkanAksiPetakTertunda,
+    sudahLempar,
+    sumberLangkah,
+    riwayatJawaban,
+    catatJawaban,
+    gerakkanPemain,
+    izinkanLemparLagi,
+    bersihkanNotifikasi
   } = useGameStore();
+  const durasiSesiMenit = usePengaturanStore((s) => s.durasiSesiMenit);
+  const kustomNamaKios = useGuruStore((s) => s.kustomNamaKios);
+
+  /** Nama petak yang ditampilkan: nama kios kustom dari Panel Guru bila diisi. */
+  const tampilPetak = (petak: PetakData): PetakData => {
+    const kustom = kustomNamaKios[petak.index]?.trim();
+    return kustom ? { ...petak, nama: kustom, namaSingkat: kustom } : petak;
+  };
 
   const [dialogJedaOpen, setDialogJedaOpen] = useState(false);
   const [dialogKeluarOpen, setDialogKeluarOpen] = useState(false);
@@ -77,7 +93,6 @@ export const PapanPermainan: React.FC<PapanPermainanProps> = ({
   const [opsiAktif, setOpsiAktif] = useState<string[]>([]);
   const [modeSoal, setModeSoal] = useState<'kios_kosong' | 'uji_pemilik' | 'tingkatkan' | 'tantangan' | null>(null);
   const [kartuKesempatanAktif, setKartuKesempatanAktif] = useState<KartuKesempatanData | null>(null);
-  const [riwayatJawaban, setRiwayatJawaban] = useState<JawabanDetail[]>([]);
 
   // Timer Diskusi Tim 30 Detik
   const [sisaDiskusi, setSisaDiskusi] = useState<number | null>(null);
@@ -111,6 +126,13 @@ export const PapanPermainan: React.FC<PapanPermainanProps> = ({
     return () => clearInterval(t);
   }, [sisaTantangan, jeda]);
 
+  // Notifikasi otomatis hilang (sebelumnya menempel selamanya & ikut tersimpan)
+  useEffect(() => {
+    if (!pesanNotifikasi) return;
+    const t = setTimeout(() => bersihkanNotifikasi(), 3500);
+    return () => clearTimeout(t);
+  }, [pesanNotifikasi, bersihkanNotifikasi]);
+
   const pemainAktif = pemain[giliranIndex];
   const petakDataAktif = petakDetail || (petakAktif !== null ? DAFTAR_PETAK[petakAktif] : DAFTAR_PETAK[0]);
 
@@ -121,7 +143,7 @@ export const PapanPermainan: React.FC<PapanPermainanProps> = ({
   const layarPenuh = useLayarPenuh();
   const bisu = usePengaturanStore((s) => s.bisu);
   const toggleBisu = usePengaturanStore((s) => s.toggleBisu);
-  useSuaraPapan(pemain, giliranIndex, sedangMelangkah);
+  useSuaraPapan(pemain, giliranIndex, sedangMelangkah, sumberLangkah);
 
   useEffect(() => {
     if (!pesanUtilitas) return;
@@ -147,18 +169,17 @@ export const PapanPermainan: React.FC<PapanPermainanProps> = ({
     if (!ok) setPesanUtilitas('Browser menolak mode layar penuh.');
   };
 
-  // Trigger Melempar Dadu
-  const handleLemparDadu = () => {
-    if (sedangMelangkah || jeda || soalAktif || kartuKesempatanAktif) return;
+  // Setelah bidak mendarat (karena dadu atau kartu): jalankan aksi petak tujuan
+  const setelahMendarat = (posAkhir: number) => {
+    const petakTujuan = DAFTAR_PETAK[posAkhir];
+    setPetakDetail(petakTujuan);
+    prosesAksiPetak(petakTujuan);
+  };
 
-    kocokDanJalankan(
-      (_posSementara) => {},
-      (posAkhir) => {
-        const petakTujuan = DAFTAR_PETAK[posAkhir];
-        setPetakDetail(petakTujuan);
-        prosesAksiPetak(petakTujuan);
-      }
-    );
+  // Trigger Melempar Dadu (satu kocokan per giliran — dijaga juga oleh store)
+  const handleLemparDadu = () => {
+    if (sedangMelangkah || jeda || sudahLempar || soalAktif || kartuKesempatanAktif) return;
+    kocokDanJalankan(undefined, setelahMendarat);
   };
 
   // Logika Aksi Petak Berdasarkan Jenisnya
@@ -249,19 +270,16 @@ export const PapanPermainan: React.FC<PapanPermainanProps> = ({
     if (!soalAktif) return;
     const petakTarget = petakSoal ?? petakDataAktif;
 
-    // Catat ke riwayat untuk bahan review
-    setRiwayatJawaban((prev) => [
-      ...prev,
-      {
-        soalId: soalAktif.id,
-        pertanyaan: soalAktif.pertanyaan,
-        kunci: soalAktif.kunci,
-        jawabanDipilih: pilihan,
-        benar,
-        pembahasan: soalAktif.pembahasan,
-        tp: soalAktif.tp
-      }
-    ]);
+    // Catat statistik benar/salah pemain + riwayat untuk bahan review (tersimpan di sesi)
+    catatJawaban(pemainAktif.id, {
+      soalId: soalAktif.id,
+      pertanyaan: soalAktif.pertanyaan,
+      kunci: soalAktif.kunci,
+      jawabanDipilih: pilihan,
+      benar,
+      pembahasan: soalAktif.pembahasan,
+      tp: soalAktif.tp
+    });
 
     // Tandai soal sebagai terpakai
     useGameStore.setState((s) => ({
@@ -275,7 +293,7 @@ export const PapanPermainan: React.FC<PapanPermainanProps> = ({
         const poin = hitungPoinKios(soalAktif.level);
         tambahPoinPemain(pemainAktif.id, poin);
         beliKios(petakTarget.index, pemainAktif.id);
-        useGameStore.setState({ pesanNotifikasi: `Hebat! Kios ${petakTarget.nama} resmi menjadi milikmu (+${poin} Poin)!` });
+        useGameStore.setState({ pesanNotifikasi: `Hebat! Kios ${tampilPetak(petakTarget).nama} resmi menjadi milikmu (+${poin} Poin)!` });
       } else if (modeSoal === 'uji_pemilik') {
         tambahPoinPemain(pemainAktif.id, 5);
         useGameStore.setState({ pesanNotifikasi: 'Berhasil menguji pemilik kios! Kamu mendapat +5 Poin!' });
@@ -291,9 +309,14 @@ export const PapanPermainan: React.FC<PapanPermainanProps> = ({
       if (modeSoal === 'uji_pemilik') {
         const pemilik = kepemilikan[petakTarget.index];
         const sewa = 5 * (pemilik ? pemilik.bintang : 1);
-        kurangPoinPemain(pemainAktif.id, sewa);
-        if (pemilik) tambahPoinPemain(pemilik.pemainId, sewa);
-        useGameStore.setState({ pesanNotifikasi: `Jawaban belum tepat! Bayar sewa ${sewa} poin ke pemilik kios.` });
+        // Poin tidak bisa negatif: pemilik hanya menerima sebanyak yang benar-benar dibayar
+        const dibayar = kurangPoinPemain(pemainAktif.id, sewa);
+        if (pemilik && dibayar > 0) tambahPoinPemain(pemilik.pemainId, dibayar);
+        useGameStore.setState({
+          pesanNotifikasi: dibayar < sewa
+            ? `Jawaban belum tepat! Sewa ${sewa} poin, poinmu hanya cukup membayar ${dibayar}.`
+            : `Jawaban belum tepat! Bayar sewa ${sewa} poin ke pemilik kios.`
+        });
       } else {
         useGameStore.setState({ pesanNotifikasi: 'Jawaban belum tepat. Pelajari pembahasannya ya!' });
       }
@@ -313,18 +336,72 @@ export const PapanPermainan: React.FC<PapanPermainanProps> = ({
     gantiGiliran();
   };
 
-  // Handler Kartu Kesempatan Selesai
+  // Handler Kartu Kesempatan Selesai — jalankan efek sesuai isi kartu
   const handleTutupKesempatan = () => {
-    if (kartuKesempatanAktif) {
-      if (kartuKesempatanAktif.tipeAksi === 'bonus_poin' && kartuKesempatanAktif.nilai) {
-        tambahPoinPemain(pemainAktif.id, kartuKesempatanAktif.nilai);
-      } else if (kartuKesempatanAktif.tipeAksi === 'bantu_teman' && kartuKesempatanAktif.nilai) {
-        tambahPoinPemain(pemainAktif.id, kartuKesempatanAktif.nilai);
-      }
-    }
+    const kartu = kartuKesempatanAktif;
     setKartuKesempatanAktif(null);
-    gantiGiliran();
+    if (!kartu) {
+      gantiGiliran();
+      return;
+    }
+
+    switch (kartu.tipeAksi) {
+      case 'bonus_poin':
+      case 'bantu_teman':
+        if (kartu.nilai) tambahPoinPemain(pemainAktif.id, kartu.nilai);
+        gantiGiliran();
+        return;
+
+      case 'lempar_lagi':
+        izinkanLemparLagi();
+        useGameStore.setState({ pesanNotifikasi: `${pemainAktif.nama}, kocok dadu sekali lagi!` });
+        return;
+
+      case 'maju_petak':
+        gerakkanPemain(kartu.nilai ?? 1, setelahMendarat);
+        return;
+
+      case 'mundur_petak':
+        gerakkanPemain(-(kartu.nilai ?? 1), setelahMendarat);
+        return;
+
+      case 'pindah_petak': {
+        if (kartu.targetPetak === undefined) {
+          gantiGiliran();
+          return;
+        }
+        // Pindah maju menuju petak target (melewati START tetap mendapat bonus);
+        // bonus petak target (mis. Pojok Baca +5) diberikan oleh aksi petak saat mendarat.
+        const langkah = (kartu.targetPetak - pemainAktif.posisi + 28) % 28;
+        if (langkah === 0) setelahMendarat(kartu.targetPetak);
+        else gerakkanPemain(langkah, setelahMendarat);
+        return;
+      }
+
+      default:
+        gantiGiliran();
+    }
   };
+
+  // Tantangan 90 detik: bila waktu habis sebelum menjawab, dihitung belum tepat & giliran berakhir
+  useEffect(() => {
+    if (modeSoal !== 'tantangan' || sisaTantangan !== 0 || !soalAktif) return;
+    catatJawaban(pemainAktif.id, {
+      soalId: soalAktif.id,
+      pertanyaan: soalAktif.pertanyaan,
+      kunci: soalAktif.kunci,
+      jawabanDipilih: '(waktu habis)',
+      benar: false,
+      pembahasan: soalAktif.pembahasan,
+      tp: soalAktif.tp
+    });
+    useGameStore.setState((st) => ({
+      soalTerpakai: [...st.soalTerpakai, soalAktif.id],
+      pesanNotifikasi: 'Waktu Tantangan 90 detik habis! Coba lagi di kesempatan berikutnya.'
+    }));
+    handleTutupSoal();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sisaTantangan, modeSoal]);
 
   const handleBukaJeda = () => {
     setJeda(true);
@@ -343,7 +420,7 @@ export const PapanPermainan: React.FC<PapanPermainanProps> = ({
   };
 
   const handleUlangPermainan = () => {
-    resetGame();
+    resetGame(durasiSesiMenit);
     setDialogJedaOpen(false);
     setPetakDetail(null);
     setPetakSoal(null);
@@ -370,7 +447,12 @@ export const PapanPermainan: React.FC<PapanPermainanProps> = ({
       <div className="arena-papan-grid">
         {/* 1. PANEL KIRI — PEMAIN & GILIRAN */}
         <div className="arena-kolom-kiri">
-          <PanelPemain pemain={pemain} giliranIndex={giliranIndex} kurangiGerak={kurangiGerak} />
+          <PanelPemain
+            pemain={pemain}
+            giliranIndex={giliranIndex}
+            kurangiGerak={kurangiGerak}
+            namaPetak={(petak) => tampilPetak(petak).namaSingkat}
+          />
         </div>
 
         {/* 2. AREA UTAMA: PAPAN PERMAINAN 28 PETAK */}
@@ -386,6 +468,9 @@ export const PapanPermainan: React.FC<PapanPermainanProps> = ({
             onPilihPetak={(petak) => setPetakDetail(petak)}
             mode3D={mode3D}
             kurangiGerak={kurangiGerak}
+            daduBerputar={sedangMelangkah && sumberLangkah === 'dadu'}
+            sudahLempar={sudahLempar}
+            namaPetak={(petak) => tampilPetak(petak).namaSingkat}
           />
         </main>
 
@@ -415,8 +500,9 @@ export const PapanPermainan: React.FC<PapanPermainanProps> = ({
           {/* Informasi petak aktif (kondisi & aksi sama seperti sebelumnya) */}
           {petakDataAktif && (
             <KartuPetakAktif
-              petak={petakDataAktif}
+              petak={tampilPetak(petakDataAktif)}
               sedangMelangkah={sedangMelangkah}
+              sudahLempar={sudahLempar}
               onLewatiGiliran={() => {
                 audio.putar('klik_tombol');
                 gantiGiliran();

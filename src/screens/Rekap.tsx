@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { NavHeader } from '../components/NavHeader';
-import { Pemain, KepemilikanKios } from '../store/gameStore';
+import { Pemain, KepemilikanKios, JawabanDetail } from '../store/gameStore';
 import { PakPeca } from '../components/PakPeca';
 import { TombolChunky } from '../components/TombolChunky';
 import { Pecahan } from '../components/Pecahan';
@@ -17,15 +17,7 @@ import {
 } from 'lucide-react';
 import { kirimRekapNilaiKeSheets, BarisNilaiSiswa } from '../engine/sheetsService';
 
-export interface JawabanDetail {
-  soalId: string;
-  pertanyaan: string;
-  kunci: string;
-  jawabanDipilih: string;
-  benar: boolean;
-  pembahasan: string;
-  tp: string;
-}
+export type { JawabanDetail };
 
 export interface RekapProps {
   pemain: Pemain[];
@@ -61,11 +53,12 @@ export const Rekap: React.FC<RekapProps> = ({
         waktu: nowStr,
         nama: p.nama,
         tim: p.timNama || 'Tim Mandiri',
-        meja: 'Meja 1',
+        // Sesi latihan papan bukan turnamen: jangan dicatat sebagai poin turnamen/meja resmi
+        meja: 'Latihan Papan',
         poinMonopoli: p.poin,
         poinDuel: 0,
         totalPoinSiswa: p.poin,
-        poinTurnamen: p.poin,
+        poinTurnamen: 0,
         peringkatMeja: idx + 1
       }));
 

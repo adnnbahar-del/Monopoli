@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { BentukTim } from '../components/Bidak';
 import { lemparDadu } from '../engine/dadu';
-import { prosesGerak } from '../engine/gerak';
+import { prosesGerak, TOTAL_PETAK_PAPAN } from '../engine/gerak';
 
 export interface Pemain {
   id: string;
@@ -31,6 +31,19 @@ export interface LangkahBerjalan {
   melewatiStart: boolean;
 }
 
+/** Catatan satu jawaban soal (untuk Rekap & review). */
+export interface JawabanDetail {
+  soalId: string;
+  pertanyaan: string;
+  kunci: string;
+  jawabanDipilih: string;
+  benar: boolean;
+  pembahasan: string;
+  tp: string;
+}
+
+export type SumberLangkah = 'dadu' | 'kartu';
+
 export interface GameState {
   mode: 'latihan' | 'turnamen';
   mejaId?: string;
@@ -49,21 +62,35 @@ export interface GameState {
   langkahBerjalan: LangkahBerjalan | null;
   /** Petak yang aksinya (soal/kesempatan/dll.) belum diproses setelah pemulihan langkah. */
   aksiPetakTertunda: number | null;
+  /** Pemain aktif sudah mengocok dadu pada giliran ini (satu kocokan per giliran). */
+  sudahLempar: boolean;
+  /** Asal langkah yang sedang berjalan: kocokan dadu atau efek kartu Kesempatan. */
+  sumberLangkah: SumberLangkah;
+  /** Riwayat jawaban sesi ini (tersimpan bersama sesi agar Rekap tetap lengkap). */
+  riwayatJawaban: JawabanDetail[];
 
   // Actions
   inisialisasiGame: (daftarPemain: Pemain[], durasiMenit?: number) => void;
   kocokDanJalankan: (onStep?: (pos: number) => void, onSelesai?: (posAkhir: number, lewatStart: boolean) => void) => void;
+  /** Gerakkan pemain aktif karena efek kartu (langkah negatif = mundur). */
+  gerakkanPemain: (langkah: number, onSelesai?: (posAkhir: number, lewatStart: boolean) => void) => void;
+  /** Kartu "lempar lagi": pemain aktif boleh mengocok sekali lagi. */
+  izinkanLemparLagi: () => void;
   setPetakAktif: (idx: number | null) => void;
   tambahPoinPemain: (pemainId: string, jumlah: number) => void;
-  kurangPoinPemain: (pemainId: string, jumlah: number) => void;
+  /** Mengurangi poin (tidak di bawah 0). Mengembalikan jumlah yang benar-benar dikurangi. */
+  kurangPoinPemain: (pemainId: string, jumlah: number) => number;
+  /** Mencatat hasil menjawab soal: statistik benar/salah pemain + riwayat. */
+  catatJawaban: (pemainId: string, detail: JawabanDetail) => void;
   beliKios: (petakIndex: number, pemainId: string) => void;
   tingkatkanKios: (petakIndex: number) => void;
   gantiGiliran: () => void;
   setJeda: (jeda: boolean) => void;
   kurangiTimer: () => void;
-  resetGame: () => void;
+  resetGame: (durasiMenit?: number) => void;
   selesaikanGame: () => void;
   bersihkanAksiPetakTertunda: () => void;
+  bersihkanNotifikasi: () => void;
 }
 
 const PEMAIN_DEFAULT: Pemain[] = [
@@ -73,66 +100,50 @@ const PEMAIN_DEFAULT: Pemain[] = [
   { id: 'p4', nama: 'Dewi', timId: 't4', timNama: 'Tim Oranye', warna: '#F08C00', bentuk: 'square', posisi: 0, poin: 0, benar: 0, salah: 0 },
 ];
 
+const DURASI_DEFAULT_MENIT = 20;
+const MS_PER_LANGKAH = 280;
+
+/** State awal satu sesi permainan (dipakai inisialisasi & reset). */
+function stateSesiBaru(pemain: Pemain[], durasiMenit: number, pesan: string) {
+  return {
+    pemain: pemain.map((p) => ({ ...p, posisi: 0, poin: 0, benar: 0, salah: 0 })),
+    giliranIndex: 0,
+    kepemilikan: {},
+    sisaDetik: Math.max(1, Math.round(durasiMenit)) * 60,
+    jeda: false,
+    sudahSelesai: false,
+    sedangMelangkah: false,
+    angkaDadu: 1,
+    petakAktif: 0,
+    soalTerpakai: [],
+    pesanNotifikasi: pesan,
+    langkahBerjalan: null,
+    aksiPetakTertunda: null,
+    sudahLempar: false,
+    sumberLangkah: 'dadu' as SumberLangkah,
+    riwayatJawaban: []
+  };
+}
+
 export const useGameStore = create<GameState>()(
   persist(
-    (set, get) => ({
-      mode: 'latihan',
-      pemain: PEMAIN_DEFAULT,
-      giliranIndex: 0,
-      kepemilikan: {},
-      sisaDetik: 20 * 60, // 20 menit default
-      jeda: false,
-      sudahSelesai: false,
-      sedangMelangkah: false,
-      angkaDadu: 1,
-      petakAktif: 0,
-      soalTerpakai: [],
-      pesanNotifikasi: null,
-      langkahBerjalan: null,
-      aksiPetakTertunda: null,
-
-      inisialisasiGame: (daftarPemain, durasiMenit = 20) => set({
-        pemain: daftarPemain.length > 0 ? daftarPemain : PEMAIN_DEFAULT,
-        giliranIndex: 0,
-        kepemilikan: {},
-        sisaDetik: durasiMenit * 60,
-        jeda: false,
-        sudahSelesai: false,
-        sedangMelangkah: false,
-        angkaDadu: 1,
-        petakAktif: 0,
-        soalTerpakai: [],
-        pesanNotifikasi: 'Permainan Dimulai! Giliran Pemain Pertama.',
-        langkahBerjalan: null,
-        aksiPetakTertunda: null
-      }),
-
-      kocokDanJalankan: (onStep, onSelesai) => {
-        const state = get();
-        if (state.sedangMelangkah || state.jeda || state.sudahSelesai) return;
-
-        const dadu = lemparDadu();
-        const pemainAktif = state.pemain[state.giliranIndex];
-        const hasil = prosesGerak(pemainAktif.posisi, dadu);
-
-        set({
-          angkaDadu: dadu,
-          sedangMelangkah: true,
-          pesanNotifikasi: `Dadu: ${dadu}! Bidak melangkah...`,
-          langkahBerjalan: {
-            pemainIndex: state.giliranIndex,
-            posisiAkhir: hasil.posisiAkhir,
-            bonusPoin: hasil.bonusPoin,
-            melewatiStart: hasil.melewatiStart
-          }
-        });
-
-        // Jalankan animasi langkah demi langkah
+    (set, get) => {
+      /**
+       * Menjalankan bidak pemain aktif petak demi petak (280 ms/langkah).
+       * Dipakai bersama oleh kocokan dadu dan efek kartu agar perilakunya identik.
+       */
+      const jalankanJalur = (
+        jalur: number[],
+        posisiAkhir: number,
+        bonusPoin: number,
+        melewatiStart: boolean,
+        onStep?: (pos: number) => void,
+        onSelesai?: (posAkhir: number, lewatStart: boolean) => void
+      ) => {
         let stepCount = 0;
         const interval = setInterval(() => {
-          if (stepCount < hasil.jalurLangkah.length) {
-            const posSekarang = hasil.jalurLangkah[stepCount];
-            // Update posisi sementara pemain
+          if (stepCount < jalur.length) {
+            const posSekarang = jalur[stepCount];
             set((s) => ({
               pemain: s.pemain.map((p, idx) =>
                 idx === s.giliranIndex ? { ...p, posisi: posSekarang } : p
@@ -144,112 +155,196 @@ export const useGameStore = create<GameState>()(
           } else {
             clearInterval(interval);
 
-            // Jika melewati atau mendarat di START, tambahkan bonus 10 poin
-            if (hasil.melewatiStart) {
+            // Jika melewati atau mendarat di START, tambahkan bonus poin
+            if (melewatiStart && bonusPoin > 0) {
               set((s) => ({
                 pemain: s.pemain.map((p, idx) =>
-                  idx === s.giliranIndex ? { ...p, poin: p.poin + hasil.bonusPoin } : p
+                  idx === s.giliranIndex ? { ...p, poin: p.poin + bonusPoin } : p
                 ),
-                pesanNotifikasi: `Melewati Gerbang START! +${hasil.bonusPoin} Poin Bonus!`
+                pesanNotifikasi: `Melewati Gerbang START! +${bonusPoin} Poin Bonus!`
               }));
             }
 
             set({ sedangMelangkah: false, langkahBerjalan: null });
-            if (onSelesai) onSelesai(hasil.posisiAkhir, hasil.melewatiStart);
+            if (onSelesai) onSelesai(posisiAkhir, melewatiStart);
           }
-        }, 280); // 280ms per langkah
-      },
+        }, MS_PER_LANGKAH);
+      };
 
-      setPetakAktif: (idx) => set({ petakAktif: idx }),
+      return {
+        mode: 'latihan',
+        ...stateSesiBaru(PEMAIN_DEFAULT, DURASI_DEFAULT_MENIT, ''),
+        pesanNotifikasi: null,
 
-      tambahPoinPemain: (pemainId, jumlah) => set((s) => ({
-        pemain: s.pemain.map((p) =>
-          p.id === pemainId ? { ...p, poin: p.poin + jumlah, benar: p.benar + 1 } : p
-        )
-      })),
+        inisialisasiGame: (daftarPemain, durasiMenit = DURASI_DEFAULT_MENIT) =>
+          set(
+            stateSesiBaru(
+              daftarPemain.length > 0 ? daftarPemain : PEMAIN_DEFAULT,
+              durasiMenit,
+              'Permainan Dimulai! Giliran Pemain Pertama.'
+            )
+          ),
 
-      kurangPoinPemain: (pemainId, jumlah) => set((s) => ({
-        pemain: s.pemain.map((p) =>
-          p.id === pemainId ? { ...p, poin: Math.max(0, p.poin - jumlah), salah: p.salah + 1 } : p
-        )
-      })),
+        kocokDanJalankan: (onStep, onSelesai) => {
+          const state = get();
+          if (state.sedangMelangkah || state.jeda || state.sudahSelesai || state.sudahLempar) return;
 
-      beliKios: (petakIndex, pemainId) => {
-        const p = get().pemain.find((x) => x.id === pemainId);
-        if (!p) return;
-        set((s) => ({
-          kepemilikan: {
-            ...s.kepemilikan,
-            [petakIndex]: {
-              pemainId: p.id,
-              timWarna: p.warna,
-              timBentuk: p.bentuk,
-              bintang: 1
+          const dadu = lemparDadu();
+          const pemainAktif = state.pemain[state.giliranIndex];
+          const hasil = prosesGerak(pemainAktif.posisi, dadu);
+
+          set({
+            angkaDadu: dadu,
+            sedangMelangkah: true,
+            sudahLempar: true,
+            sumberLangkah: 'dadu',
+            pesanNotifikasi: `Dadu: ${dadu}! Bidak melangkah...`,
+            langkahBerjalan: {
+              pemainIndex: state.giliranIndex,
+              posisiAkhir: hasil.posisiAkhir,
+              bonusPoin: hasil.bonusPoin,
+              melewatiStart: hasil.melewatiStart
             }
-          }
-        }));
-      },
+          });
 
-      tingkatkanKios: (petakIndex) => {
-        set((s) => {
-          const kios = s.kepemilikan[petakIndex];
-          if (!kios) return s;
-          return {
+          jalankanJalur(hasil.jalurLangkah, hasil.posisiAkhir, hasil.bonusPoin, hasil.melewatiStart, onStep, onSelesai);
+        },
+
+        gerakkanPemain: (langkah, onSelesai) => {
+          const state = get();
+          if (state.sedangMelangkah || state.sudahSelesai || langkah === 0) return;
+
+          const pemainAktif = state.pemain[state.giliranIndex];
+          let jalur: number[];
+          let posisiAkhir: number;
+          let bonusPoin = 0;
+          let melewatiStart = false;
+
+          if (langkah > 0) {
+            const hasil = prosesGerak(pemainAktif.posisi, langkah);
+            jalur = hasil.jalurLangkah;
+            posisiAkhir = hasil.posisiAkhir;
+            bonusPoin = hasil.bonusPoin;
+            melewatiStart = hasil.melewatiStart;
+          } else {
+            // Mundur: tidak pernah mendapat bonus START
+            jalur = [];
+            let curr = pemainAktif.posisi;
+            for (let i = 0; i < -langkah; i++) {
+              curr = (curr - 1 + TOTAL_PETAK_PAPAN) % TOTAL_PETAK_PAPAN;
+              jalur.push(curr);
+            }
+            posisiAkhir = curr;
+          }
+
+          set({
+            sedangMelangkah: true,
+            sumberLangkah: 'kartu',
+            langkahBerjalan: { pemainIndex: state.giliranIndex, posisiAkhir, bonusPoin, melewatiStart }
+          });
+
+          jalankanJalur(jalur, posisiAkhir, bonusPoin, melewatiStart, undefined, onSelesai);
+        },
+
+        izinkanLemparLagi: () => set({ sudahLempar: false }),
+
+        setPetakAktif: (idx) => set({ petakAktif: idx }),
+
+        // Poin dan statistik jawaban dipisah: bonus/sewa tidak dihitung sebagai jawaban benar
+        tambahPoinPemain: (pemainId, jumlah) => set((s) => ({
+          pemain: s.pemain.map((p) =>
+            p.id === pemainId ? { ...p, poin: p.poin + jumlah } : p
+          )
+        })),
+
+        kurangPoinPemain: (pemainId, jumlah) => {
+          const p = get().pemain.find((x) => x.id === pemainId);
+          if (!p) return 0;
+          const dikurangi = Math.min(Math.max(0, jumlah), p.poin);
+          set((s) => ({
+            pemain: s.pemain.map((x) =>
+              x.id === pemainId ? { ...x, poin: x.poin - dikurangi } : x
+            )
+          }));
+          return dikurangi;
+        },
+
+        catatJawaban: (pemainId, detail) => set((s) => ({
+          pemain: s.pemain.map((p) =>
+            p.id === pemainId
+              ? { ...p, benar: p.benar + (detail.benar ? 1 : 0), salah: p.salah + (detail.benar ? 0 : 1) }
+              : p
+          ),
+          riwayatJawaban: [...s.riwayatJawaban, detail]
+        })),
+
+        beliKios: (petakIndex, pemainId) => {
+          const p = get().pemain.find((x) => x.id === pemainId);
+          if (!p) return;
+          set((s) => ({
             kepemilikan: {
               ...s.kepemilikan,
               [petakIndex]: {
-                ...kios,
-                bintang: Math.min(2, kios.bintang + 1)
+                pemainId: p.id,
+                timWarna: p.warna,
+                timBentuk: p.bentuk,
+                bintang: 1
               }
             }
-          };
-        });
-      },
+          }));
+        },
 
-      gantiGiliran: () => {
-        const s = get();
-        const nextIndex = (s.giliranIndex + 1) % s.pemain.length;
-        set({
-          giliranIndex: nextIndex,
-          petakAktif: s.pemain[nextIndex].posisi,
-          pesanNotifikasi: `Giliran ${s.pemain[nextIndex].nama} (${s.pemain[nextIndex].timNama})`
-        });
-      },
+        tingkatkanKios: (petakIndex) => {
+          set((s) => {
+            const kios = s.kepemilikan[petakIndex];
+            if (!kios) return s;
+            return {
+              kepemilikan: {
+                ...s.kepemilikan,
+                [petakIndex]: {
+                  ...kios,
+                  bintang: Math.min(2, kios.bintang + 1)
+                }
+              }
+            };
+          });
+        },
 
-      setJeda: (jeda) => set({ jeda }),
+        gantiGiliran: () => {
+          const s = get();
+          if (s.sedangMelangkah) return; // jangan ganti giliran di tengah langkah bidak
+          const nextIndex = (s.giliranIndex + 1) % s.pemain.length;
+          set({
+            giliranIndex: nextIndex,
+            sudahLempar: false,
+            petakAktif: s.pemain[nextIndex].posisi,
+            pesanNotifikasi: `Giliran ${s.pemain[nextIndex].nama} (${s.pemain[nextIndex].timNama})`
+          });
+        },
 
-      kurangiTimer: () => {
-        const s = get();
-        if (s.jeda || s.sudahSelesai) return;
-        if (s.sisaDetik <= 1) {
-          set({ sisaDetik: 0, sudahSelesai: true, jeda: true });
-        } else {
-          set({ sisaDetik: s.sisaDetik - 1 });
-        }
-      },
+        setJeda: (jeda) => set({ jeda }),
 
-      resetGame: () => {
-        set({
-          pemain: PEMAIN_DEFAULT.map(p => ({ ...p, posisi: 0, poin: 0, benar: 0, salah: 0 })),
-          giliranIndex: 0,
-          kepemilikan: {},
-          sisaDetik: 20 * 60,
-          jeda: false,
-          sudahSelesai: false,
-          sedangMelangkah: false,
-          angkaDadu: 1,
-          petakAktif: 0,
-          soalTerpakai: [],
-          pesanNotifikasi: 'Permainan Dimulai Ulang!',
-          langkahBerjalan: null,
-          aksiPetakTertunda: null
-        });
-      },
+        kurangiTimer: () => {
+          const s = get();
+          if (s.jeda || s.sudahSelesai) return;
+          if (s.sisaDetik <= 1) {
+            set({ sisaDetik: 0, sudahSelesai: true, jeda: true });
+          } else {
+            set({ sisaDetik: s.sisaDetik - 1 });
+          }
+        },
 
-      selesaikanGame: () => set({ sudahSelesai: true, jeda: true }),
+        resetGame: (durasiMenit = DURASI_DEFAULT_MENIT) => {
+          set(stateSesiBaru(get().pemain.length > 0 ? get().pemain : PEMAIN_DEFAULT, durasiMenit, 'Permainan Dimulai Ulang!'));
+        },
 
-      bersihkanAksiPetakTertunda: () => set({ aksiPetakTertunda: null })
-    }),
+        selesaikanGame: () => set({ sudahSelesai: true, jeda: true }),
+
+        bersihkanAksiPetakTertunda: () => set({ aksiPetakTertunda: null }),
+
+        bersihkanNotifikasi: () => set({ pesanNotifikasi: null })
+      };
+    },
     {
       name: 'monepeca_game_session',
       // Pulihkan sesi yang tersimpan di tengah langkah bidak (mis. halaman dimuat ulang):
@@ -260,6 +355,18 @@ export const useGameStore = create<GameState>()(
   )
 );
 
+/** Apakah ada sesi permainan berjalan yang layak dilanjutkan. */
+export function adaSesiBerjalan(s: Pick<GameState, 'sudahSelesai' | 'pemain' | 'kepemilikan' | 'riwayatJawaban' | 'sudahLempar' | 'giliranIndex'>): boolean {
+  if (s.sudahSelesai) return false;
+  return (
+    s.giliranIndex > 0 ||
+    s.sudahLempar ||
+    s.pemain.some((p) => p.posisi !== 0 || p.poin !== 0) ||
+    Object.keys(s.kepemilikan).length > 0 ||
+    s.riwayatJawaban.length > 0
+  );
+}
+
 /**
  * Menggabungkan sesi tersimpan ke state awal dan menyelesaikan langkah yang terputus.
  * Hasil akhir sama dengan bila langkah selesai normal: bidak di petak tujuan,
@@ -267,6 +374,9 @@ export const useGameStore = create<GameState>()(
  */
 export function pulihkanSesi(tersimpan: Partial<GameState> | undefined, sekarang: GameState): GameState {
   const gabung: GameState = { ...sekarang, ...(tersimpan ?? {}) };
+  // Sesi lama mungkin belum punya field baru
+  if (!Array.isArray(gabung.riwayatJawaban)) gabung.riwayatJawaban = [];
+  if (typeof gabung.sudahLempar !== 'boolean') gabung.sudahLempar = false;
   if (!gabung.sedangMelangkah) return gabung;
 
   const langkah = gabung.langkahBerjalan;

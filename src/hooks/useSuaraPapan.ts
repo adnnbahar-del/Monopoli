@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { audio } from '../engine/audioManager';
-import type { Pemain } from '../store/gameStore';
+import type { Pemain, SumberLangkah } from '../store/gameStore';
 
 /**
  * Efek suara papan permainan yang DIPICU OLEH perubahan state existing.
@@ -12,7 +12,12 @@ import type { Pemain } from '../store/gameStore';
  * - sedangMelangkah true → false : suara bidak mendarat (petak aktif disorot)
  * - giliranIndex berubah          : suara pergantian giliran
  */
-export function useSuaraPapan(pemain: Pemain[], giliranIndex: number, sedangMelangkah: boolean) {
+export function useSuaraPapan(
+  pemain: Pemain[],
+  giliranIndex: number,
+  sedangMelangkah: boolean,
+  sumberLangkah: SumberLangkah = 'dadu'
+) {
   const posisiAktif = pemain[giliranIndex]?.posisi;
   const prev = useRef({ sedangMelangkah, giliranIndex, posisiAktif });
 
@@ -20,7 +25,7 @@ export function useSuaraPapan(pemain: Pemain[], giliranIndex: number, sedangMela
     const p = prev.current;
     try {
       if (!p.sedangMelangkah && sedangMelangkah) {
-        audio.putar('dadu_lempar');
+        audio.putar(sumberLangkah === 'kartu' ? 'kesempatan' : 'dadu_lempar');
       } else if (p.sedangMelangkah && !sedangMelangkah) {
         audio.putar('bidak_landing');
       } else if (sedangMelangkah && p.giliranIndex === giliranIndex && p.posisiAktif !== posisiAktif) {
@@ -34,5 +39,6 @@ export function useSuaraPapan(pemain: Pemain[], giliranIndex: number, sedangMela
       // Audio gagal tidak boleh mengganggu permainan
     }
     prev.current = { sedangMelangkah, giliranIndex, posisiAktif };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sedangMelangkah, giliranIndex, posisiAktif]);
 }

@@ -69,6 +69,12 @@ export interface PapanProps {
   mode3D?: boolean;
   /** Matikan animasi dekoratif (prefers-reduced-motion). */
   kurangiGerak?: boolean;
+  /** Dadu berputar hanya untuk langkah hasil kocokan (bukan langkah dari kartu). Default: sedangMelangkah. */
+  daduBerputar?: boolean;
+  /** Pemain aktif sudah mengocok pada giliran ini — tombol kocok dikunci. */
+  sudahLempar?: boolean;
+  /** Label petak yang ditampilkan (mis. nama kios kustom dari Panel Guru). */
+  namaPetak?: (petak: PetakData) => string;
   className?: string;
 }
 
@@ -88,9 +94,13 @@ export const Papan: React.FC<PapanProps> = ({
   onPilihPetak,
   mode3D = true,
   kurangiGerak = false,
+  daduBerputar,
+  sudahLempar = false,
+  namaPetak,
   className = ''
 }) => {
   const pemainAktif = pemain[giliranIndex];
+  const kocokTerkunci = sedangMelangkah || sudahLempar;
 
   return (
     <div className={`papan-panggung ${mode3D ? 'papan-panggung-3d' : ''} ${className}`}>
@@ -112,7 +122,8 @@ export const Papan: React.FC<PapanProps> = ({
                   key={petak.index}
                   data-petak={petak.index}
                   onClick={() => onPilihPetak && onPilihPetak(petak)}
-                  aria-label={`Petak ${petak.index}: ${petak.nama}`}
+                  aria-label={`Petak ${petak.index}: ${namaPetak ? namaPetak(petak) : petak.nama}`}
+                  title={namaPetak ? namaPetak(petak) : petak.nama}
                   aria-current={isAktif ? 'location' : undefined}
                   style={{
                     gridRowStart: petak.gridRow + 1,
@@ -135,7 +146,7 @@ export const Papan: React.FC<PapanProps> = ({
 
                   <span className="petak-ikon">{IKON_MAP[petak.ikon] || <Sparkles />}</span>
 
-                  <span className="petak-nama">{petak.namaSingkat}</span>
+                  <span className="petak-nama">{namaPetak ? namaPetak(petak) : petak.namaSingkat}</span>
                 </button>
               );
             })}
@@ -155,20 +166,20 @@ export const Papan: React.FC<PapanProps> = ({
               <div className="relative z-10 my-auto flex flex-col items-center gap-[2.2cqw]">
                 <DaduArena
                   nilai={angkaDadu}
-                  sedangMelangkah={sedangMelangkah}
-                  disabled={sedangMelangkah}
+                  sedangMelangkah={daduBerputar ?? sedangMelangkah}
+                  disabled={kocokTerkunci}
                   onKocok={onLemparDadu}
                   kurangiGerak={kurangiGerak}
                 />
                 <TombolChunky
                   variant="primary"
                   size="md"
-                  disabled={sedangMelangkah}
+                  disabled={kocokTerkunci}
                   icon={<Dices className="w-5 h-5 fill-white" />}
                   onClick={onLemparDadu}
                   className="papan-tombol-kocok"
                 >
-                  {sedangMelangkah ? 'Melangkah...' : 'Kocok Dadu'}
+                  {sedangMelangkah ? 'Melangkah...' : sudahLempar ? 'Sudah Dikocok' : 'Kocok Dadu'}
                 </TombolChunky>
               </div>
 

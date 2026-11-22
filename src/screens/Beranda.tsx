@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Zap,
@@ -23,6 +23,7 @@ import {
 import { audio, SFXKunci } from '../engine/audioManager';
 import { usePengaturanStore } from '../store/pengaturanStore';
 import { useLayarPenuh } from '../hooks/useLayarPenuh';
+import { DialogRamah } from '../components/DialogRamah';
 import { ArenaLatar } from '../components/beranda/ArenaLatar';
 import { HeaderArena } from '../components/beranda/HeaderArena';
 import { PapanSkorKelompok } from '../components/beranda/PapanSkorKelompok';
@@ -56,6 +57,8 @@ export interface BerandaProps {
   onNavigasi: (layar: Layar) => void;
   adaGameTersimpan?: boolean;
   onLanjutkanGame?: () => void;
+  /** Mulai sesi papan baru (durasi dari Pengaturan). Bila tidak diisi, langsung ke papan. */
+  onMulaiPermainanBaru?: () => void;
 }
 
 /* ── Judul bagian berbentuk pil ───────────────────────────────── */
@@ -151,8 +154,10 @@ const KartuMenu: React.FC<KartuMenuProps> = ({
 export const Beranda: React.FC<BerandaProps> = ({
   onNavigasi,
   adaGameTersimpan = false,
-  onLanjutkanGame
+  onLanjutkanGame,
+  onMulaiPermainanBaru
 }) => {
+  const [konfirmasiBaruOpen, setKonfirmasiBaruOpen] = useState(false);
   const bisu = usePengaturanStore((s) => s.bisu);
   const toggleBisu = usePengaturanStore((s) => s.toggleBisu);
   const layarPenuh = useLayarPenuh();
@@ -309,7 +314,17 @@ export const Beranda: React.FC<BerandaProps> = ({
               type="button"
               whileHover={{ y: -5 }}
               whileTap={{ y: 2 }}
-              onClick={() => handlePilih('papanPermainan', 'dadu_lempar')}
+              onClick={() => {
+                if (!onMulaiPermainanBaru) {
+                  handlePilih('papanPermainan', 'dadu_lempar');
+                } else if (adaGameTersimpan) {
+                  audio.putar('klik_tombol');
+                  setKonfirmasiBaruOpen(true);
+                } else {
+                  audio.putar('dadu_lempar');
+                  onMulaiPermainanBaru();
+                }
+              }}
               className="group relative text-left p-5 sm:p-6 rounded-[28px] bg-gradient-to-br from-[#FF8A4C] via-[#F25A24] to-[#D9400C] border-4 border-[#1E2149] shadow-[0_8px_0_#9E2D07] text-white cursor-pointer overflow-hidden flex flex-col min-h-[260px]"
             >
               <div className="absolute -right-10 -top-10 w-48 h-48 rounded-full bg-white/15 blur-2xl pointer-events-none" />
@@ -474,6 +489,21 @@ export const Beranda: React.FC<BerandaProps> = ({
           )}
         </div>
       </div>
+      <DialogRamah
+        open={konfirmasiBaruOpen}
+        judul="Mulai Permainan Baru?"
+        pesan="Masih ada sesi monopoli yang tersimpan. Memulai permainan baru akan menghapus posisi, poin, dan kios sesi tersebut."
+        ekspresiPakPeca="berpikir"
+        teksKonfirmasi="Ya, Mulai Baru"
+        teksBatal="Batal"
+        tipe="bahaya"
+        onKonfirmasi={() => {
+          setKonfirmasiBaruOpen(false);
+          audio.putar('dadu_lempar');
+          onMulaiPermainanBaru?.();
+        }}
+        onBatal={() => setKonfirmasiBaruOpen(false)}
+      />
     </div>
   );
 };

@@ -14,6 +14,7 @@ import { PapanPermainan } from '../screens/PapanPermainan';
 import { TurnamenTGT } from '../screens/turnamen/TurnamenTGT';
 import { LoginGuru } from '../screens/guru/LoginGuru';
 import { usePengaturanStore } from '../store/pengaturanStore';
+import { useGameStore, adaSesiBerjalan } from '../store/gameStore';
 import { audio } from '../engine/audioManager';
 
 const PanelGuruUtama = React.lazy(() => import('../screens/guru/PanelGuruUtama'));
@@ -23,7 +24,9 @@ export const App: React.FC = () => {
   const [riwayat, setRiwayat] = useState<Layar[]>(['splash']);
 
   // ── Aksesibilitas Reaktif ───────────────────────────────────
-  const { kontrasTinggi, ukuranTeks, volumeSFX, bisu } = usePengaturanStore();
+  const { kontrasTinggi, ukuranTeks, volumeSFX, bisu, durasiSesiMenit } = usePengaturanStore();
+  const sesiTersimpan = useGameStore((s) => adaSesiBerjalan(s));
+  const resetGame = useGameStore((s) => s.resetGame);
 
   useEffect(() => {
     if (kontrasTinggi) {
@@ -99,8 +102,12 @@ export const App: React.FC = () => {
             {layarSekarang === 'beranda' && (
               <Beranda
                 onNavigasi={(layar) => navigasiKe(layar)}
-                adaGameTersimpan={true}
+                adaGameTersimpan={sesiTersimpan}
                 onLanjutkanGame={() => navigasiKe('papanPermainan')}
+                onMulaiPermainanBaru={() => {
+                  resetGame(durasiSesiMenit);
+                  navigasiKe('papanPermainan');
+                }}
               />
             )}
 

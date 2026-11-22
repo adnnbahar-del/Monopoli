@@ -2,19 +2,20 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trophy, MapPin, Crown } from 'lucide-react';
 import type { Pemain } from '../../store/gameStore';
-import { DAFTAR_PETAK } from '../../data/papan';
+import { DAFTAR_PETAK, PetakData } from '../../data/papan';
 
 export interface PanelPemainProps {
   pemain: Pemain[];
   giliranIndex: number;
   kurangiGerak?: boolean;
+  namaPetak?: (petak: PetakData) => string;
 }
 
 /**
  * Panel kiri: "Giliran Saat Ini" + daftar seluruh pemain.
  * Hanya membaca state existing (pemain, giliranIndex) — tidak mengubah apa pun.
  */
-export const PanelPemain: React.FC<PanelPemainProps> = ({ pemain, giliranIndex, kurangiGerak = false }) => {
+export const PanelPemain: React.FC<PanelPemainProps> = ({ pemain, giliranIndex, kurangiGerak = false, namaPetak }) => {
   const aktif = pemain[giliranIndex];
   const poinTertinggi = Math.max(0, ...pemain.map((p) => p.poin));
 
@@ -81,7 +82,7 @@ export const PanelPemain: React.FC<PanelPemainProps> = ({ pemain, giliranIndex, 
                 <span className="flex items-center gap-1 text-[11px] font-bold text-[#101C48]/70 truncate">
                   <MapPin className="w-3 h-3 shrink-0" />
                   Petak {p.posisi}
-                  <span className="hidden xl:inline truncate">· {petak?.namaSingkat}</span>
+                  <span className="hidden xl:inline truncate">· {petak ? (namaPetak ? namaPetak(petak) : petak.namaSingkat) : ''}</span>
                 </span>
               </span>
               <span className="kartu-pemain-poin">

@@ -127,10 +127,12 @@ export const KontrolArena: React.FC<KontrolArenaProps> = ({
 export interface KartuPetakAktifProps {
   petak: PetakData;
   sedangMelangkah: boolean;
+  /** Setelah dadu dikocok, tombol mengakhiri giliran (bukan melewati). */
+  sudahLempar?: boolean;
   onLewatiGiliran: () => void;
 }
 
-export const KartuPetakAktif: React.FC<KartuPetakAktifProps> = ({ petak, sedangMelangkah, onLewatiGiliran }) => {
+export const KartuPetakAktif: React.FC<KartuPetakAktifProps> = ({ petak, sedangMelangkah, sudahLempar = false, onLewatiGiliran }) => {
   if (sedangMelangkah) {
     return (
       <div className="kartu-petak-aktif items-center justify-center text-center" aria-live="polite">
@@ -162,7 +164,7 @@ export const KartuPetakAktif: React.FC<KartuPetakAktifProps> = ({ petak, sedangM
       </div>
       <p className="text-sm font-bold text-[#101C48]/80 leading-snug">{petak.deskripsi}</p>
       <button type="button" onClick={onLewatiGiliran} className="tombol-lewati-arena">
-        Lewati Giliran
+        {sudahLempar ? 'Akhiri Giliran' : 'Lewati Giliran'}
         <ArrowRight className="w-4 h-4" strokeWidth={3} />
       </button>
     </div>

@@ -36,6 +36,9 @@ export const Toast: React.FC<ToastProps> = ({
   }[tipe];
 
   return (
+    // Pembungkus fixed + flex yang memusatkan toast: transform animasi framer-motion
+    // tidak lagi menimpa -translate-x-1/2 (sebelumnya toast bergeser ke kanan).
+    <div className="fixed top-5 inset-x-0 z-50 flex justify-center pointer-events-none px-4" role="status" aria-live="polite">
     <AnimatePresence>
       {show && (
         <motion.div
@@ -43,10 +46,10 @@ export const Toast: React.FC<ToastProps> = ({
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -20, scale: 0.95 }}
           className={`
-            fixed top-5 left-1/2 -translate-x-1/2 z-50
+            pointer-events-auto
             flex items-center gap-3 px-4 py-3 rounded-2xl
             ${config.bg} text-white border-2 border-[#1E2149]
-            shadow-[0_6px_0_#1E2149] max-w-sm sm:max-w-md w-[90%]
+            shadow-[0_6px_0_#1E2149] max-w-sm sm:max-w-md w-full
           `}
         >
           {config.icon}
@@ -62,5 +65,6 @@ export const Toast: React.FC<ToastProps> = ({
         </motion.div>
       )}
     </AnimatePresence>
+    </div>
   );
 };
